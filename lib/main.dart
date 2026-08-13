@@ -287,7 +287,418 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class GamePlaceholderScreen extends StatelessWidget {
+class GamePlaceholderScreen extends StatefulWidget {
+  const GamePlaceholderScreen({super.key});
+
+  @override
+  State<GamePlaceholderScreen> createState() => _GamePlaceholderScreenState();
+}
+
+enum ArrowDirection { up, down, left, right }
+
+class ArrowTile {
+  ArrowTile({
+    required this.row,
+    required this.col,
+    required this.direction,
+  });
+
+  int row;
+  int col;
+  final ArrowDirection direction;
+  bool visible = true;
+  bool moving = false;
+  bool blocked = false;
+}
+
+class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
+    with TickerProviderStateMixin {
+  late List<ArrowTile> arrows;
+
+  int moves = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _createLevel();
+  }
+
+  void _createLevel() {
+    arrows = [
+      ArrowTile(row: 0, col: 0, direction: ArrowDirection.right),
+      ArrowTile(row: 0, col: 2, direction: ArrowDirection.down),
+      ArrowTile(row: 1, col: 2, direction: ArrowDirection.down),
+      ArrowTile(row: 2, col: 2, direction: ArrowDirection.left),
+      ArrowTile(row: 2, col: 1, direction: ArrowDirection.left),
+      ArrowTile(row: 2, col: 0, direction: ArrowDirection.down),
+      ArrowTile(row: 4, col: 0, direction: ArrowDirection.right),
+      ArrowTile(row: 4, col: 1, direction: ArrowDirection.right),
+      ArrowTile(row: 4, col: 3, direction: ArrowDirection.up),
+      ArrowTile(row: 3, col: 3, direction: ArrowDirection.up),
+      ArrowTile(row: 1, col: 4, direction: ArrowDirection.down),
+      ArrowTile(row: 3, col: 4, direction: ArrowDirection.up),
+    ];
+
+    moves = 0;
+  }
+
+  List<ArrowTile> _visibleArrows() {
+    return arrows.where((a) => a.visible && !a.moving).toList();
+  }
+
+  bool _isBlocked(ArrowTile arrow) {
+    for (final other in _visibleArrows()) {
+      if (identical(other, arrow)) continue;
+
+      switch (arrow.direction) {
+        case ArrowDirection.up:
+          if (other.col == arrow.col && other.row < arrow.row) {
+            return true;
+          }
+          break;
+
+        case ArrowDirection.down:
+          if (other.col == arrow.col && other.row > arrow.row) {
+            return true;
+          }
+          break;
+
+        case ArrowDirection.left:
+          if (other.row == arrow.row && other.col < arrow.col) {
+            return true;
+          }
+          break;
+
+        case ArrowDirection.right:
+          if (other.row == arrow.row && other.col > arrow.col) {
+            return true;
+          }
+          break;
+      }
+    }
+
+    return false;
+  }
+
+  Future<void> _tapArrow(ArrowTile arrow) async {
+    if (!arrow.visible || arrow.moving) return;
+
+    final blocked = _isBlocked(arrow);
+
+    if (blocked) {
+      setState(() {
+        arrow.blocked = true;
+      });
+
+      await Future.delayed(const Duration(milliseconds: 350));
+
+      if (mounted) {
+        setState(() {
+          arrow.blocked = false;
+        });
+      }
+
+      return;
+    }
+
+    setState(() {
+      arrow.moving = true;
+      moves++;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 350));
+
+    if (!mounted) return;
+
+    setState(() {
+      arrow.visible = false;
+      arrow.moving = false;
+    });
+
+    if (arrows.every((a) => !a.visible)) {
+      await Future.delayed(const Duration(milliseconds: 250));
+
+      if (mounted) {
+        _showLevelComplete();
+      }
+    }
+  }
+
+  void _resetLevel() {
+    setState(() {
+      _createLevel();
+    });
+  }
+
+  void _showLevelComplete() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: const Text(
+            '🎉 Level Complete!',
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'All arrows cleared!',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Moves: $moves',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _resetLevel();
+              },
+              child: const Text('REPLAY'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context);
+              },
+              child: const Text('HOME'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  IconData _arrowIcon(ArrowDirection direction) {
+    switch (direction) {
+      case ArrowDirection.up:
+        return Icons.arrow_upward_rounded;
+      case ArrowDirection.down:
+        return Icons.arrow_downward_rounded;
+      case ArrowDirection.left:
+        return Icons.arrow_back_rounded;
+      case ArrowDirection.right:
+        return Icons.arrow_forward_rounded;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF3F5FF),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF3F5FF),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'LEVEL 1',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1,
+          ),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            tooltip: 'Reset',
+            onPressed: _resetLevel,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _infoCard(Icons.touch_app_rounded, 'Moves', '$moves'),
+                const SizedBox(width: 12),
+                _infoCard(
+                  Icons.keyboard_arrow_up_rounded,
+                  'Arrows',
+                  '${arrows.where((a) => a.visible).length}',
+                ),
+              ],
+            ),
+
+            const Spacer(),
+
+            Padding(
+              padding: const EdgeInsets.all(22),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x18000000),
+                        blurRadius: 25,
+                        offset: Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: 25,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 5,
+                      crossAxisSpacing: 7,
+                      mainAxisSpacing: 7,
+                    ),
+                    itemBuilder: (context, index) {
+                      final row = index ~/ 5;
+                      final col = index % 5;
+
+                      final cellArrows = arrows.where(
+                        (a) =>
+                            a.visible &&
+                            a.row == row &&
+                            a.col == col,
+                      );
+
+                      if (cellArrows.isEmpty) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F6FC),
+                            borderRadius: BorderRadius.circular(13),
+                          ),
+                        );
+                      }
+
+                      final arrow = cellArrows.first;
+
+                      return GestureDetector(
+                        onTap: () => _tapArrow(arrow),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 120),
+                          curve: Curves.easeOut,
+                          transform: arrow.blocked
+                              ? (Matrix4.identity()
+                                ..translate(
+                                  arrow.blocked ? 5.0 : 0.0,
+                                ))
+                              : Matrix4.identity(),
+                          decoration: BoxDecoration(
+                            color: arrow.moving
+                                ? const Color(0xFFBFC7FF)
+                                : const Color(0xFF6575FF),
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0x405B6CFF),
+                                blurRadius: arrow.moving ? 20 : 8,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 250),
+                            opacity: arrow.moving ? 0.25 : 1,
+                            child: Center(
+                              child: Icon(
+                                _arrowIcon(arrow.direction),
+                                color: Colors.white,
+                                size: 31,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+
+            const Spacer(),
+
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 30),
+              child: Text(
+                'Clear the arrows in the correct order',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF697087),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 22),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _infoCard(IconData icon, String title, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 15,
+        vertical: 9,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: const Color(0xFF5B6CFF),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF777E91),
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(width: 7),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
   const GamePlaceholderScreen({super.key});
 
   @override
