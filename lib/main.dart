@@ -320,7 +320,6 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
 
   late List<ArrowTile> arrows;
   int moves = 0;
-  bool inputLocked = false;
 
   @override
   void initState() {
@@ -355,7 +354,6 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
 
     arrows = level;
     moves = 0;
-    inputLocked = false;
   }
 
   List<ArrowTile> _remaining(List<ArrowTile> list) {
@@ -425,20 +423,18 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
   }
 
   Future<void> _tapArrow(ArrowTile arrow) async {
-    if (inputLocked || !arrow.visible || arrow.moving) {
+    if (!arrow.visible || arrow.moving) {
       return;
     }
 
-    // IMPORTANT:
-    // Only the arrow that the player tapped is checked and moved.
-    final blocked = _isBlockedBy(arrow, arrows);
-
-    if (blocked) {
+    // Check the board BEFORE this arrow starts moving.
+    // Moving arrows are already considered removed from the puzzle.
+    if (_isBlockedBy(arrow, arrows)) {
       setState(() {
         arrow.blocked = true;
       });
 
-      await Future.delayed(const Duration(milliseconds: 300));
+      await Future.delayed(const Duration(milliseconds: 180));
 
       if (!mounted) return;
 
@@ -449,25 +445,31 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
       return;
     }
 
+    // IMPORTANT:
+    // There is NO global input lock anymore.
+    //
+    // The tapped arrow becomes logically removed immediately.
+    // Its visual exit animation continues independently.
     setState(() {
-      inputLocked = true;
+      arrow.visible = false;
       arrow.moving = true;
       moves++;
     });
 
-    // Let the AnimatedPositioned animation finish.
+    // Other arrows can now be tapped immediately.
+    //
+    // Wait only for THIS arrow's visual animation.
     await Future.delayed(const Duration(milliseconds: 380));
 
     if (!mounted) return;
 
     setState(() {
-      arrow.visible = false;
       arrow.moving = false;
-      inputLocked = false;
     });
 
-    if (arrows.every((a) => !a.visible)) {
-      await Future.delayed(const Duration(milliseconds: 250));
+    // Complete only after every arrow has finished its exit animation.
+    if (arrows.every((a) => !a.visible && !a.moving)) {
+      await Future.delayed(const Duration(milliseconds: 150));
 
       if (mounted) {
         _showLevelComplete();
@@ -694,7 +696,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
                           // Every arrow has a FIXED row/column.
                           // Only the tapped arrow gets an exit offset.
                           for (final arrow in arrows)
-                            if (arrow.visible)
+                            if (arrow.visible || arrow.moving)
                               AnimatedPositioned(
                                 duration:
                                     const Duration(milliseconds: 380),
@@ -703,9 +705,11 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
                                 top: _topFor(arrow, cellSize),
                                 width: cellSize,
                                 height: cellSize,
-                                child: GestureDetector(
-                                  onTap: () => _tapArrow(arrow),
-                                  child: AnimatedContainer(
+                                child: IgnorePointer(
+                                  ignoring: arrow.moving,
+                                  child: GestureDetector(
+                                    onTap: () => _tapArrow(arrow),
+                                    child: AnimatedContainer(
                                     duration:
                                         const Duration(milliseconds: 100),
                                     curve: Curves.easeOut,
@@ -741,6 +745,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
                                           size: 31,
                                         ),
                                       ),
+                                    ),
                                     ),
                                   ),
                                 ),
