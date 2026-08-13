@@ -550,28 +550,30 @@ class HomeScreen extends StatelessWidget {
               vertical: 7,
             ),
             child: Column(
-            children: [
-              Icon(
-                icon,
-                size: 25,
-                color: const Color(0xFF5B6CFF),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF5A6175),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 25,
+                  color: const Color(0xFF5B6CFF),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF5A6175),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-}
+
 
 
 class GamePlaceholderScreen extends StatefulWidget {
