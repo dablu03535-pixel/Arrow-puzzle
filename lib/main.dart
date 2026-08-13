@@ -17,7 +17,204 @@ class ArrowPuzzleApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'sans',
       ),
-      home: const HomeScreen(),
+      home: const SplashScreen(),
+    );
+  }
+}
+
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  late final AnimationController _logoController;
+  late final AnimationController _arrowController;
+
+  late final Animation<double> _logoScale;
+  late final Animation<double> _logoOpacity;
+  late final Animation<double> _arrowScale;
+  late final Animation<double> _arrowOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _logoController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 850),
+    );
+
+    _arrowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    );
+
+    _logoScale = CurvedAnimation(
+      parent: _logoController,
+      curve: Curves.easeOutBack,
+    );
+
+    _logoOpacity = CurvedAnimation(
+      parent: _logoController,
+      curve: Curves.easeOut,
+    );
+
+    _arrowScale = CurvedAnimation(
+      parent: _arrowController,
+      curve: Curves.easeOutBack,
+    );
+
+    _arrowOpacity = CurvedAnimation(
+      parent: _arrowController,
+      curve: Curves.easeOut,
+    );
+
+    _startSplash();
+  }
+
+  Future<void> _startSplash() async {
+    await _arrowController.forward();
+    await _logoController.forward();
+
+    await Future.delayed(const Duration(milliseconds: 550));
+
+    if (!mounted) return;
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const HomeScreen(),
+        transitionDuration: const Duration(milliseconds: 450),
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _logoController.dispose();
+    _arrowController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFF7F9FF),
+              Color(0xFFE9EEFF),
+            ],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ScaleTransition(
+                scale: _arrowScale,
+                child: FadeTransition(
+                  opacity: _arrowOpacity,
+                  child: Container(
+                    width: 118,
+                    height: 118,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(32),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x225B6CFF),
+                          blurRadius: 30,
+                          offset: Offset(0, 14),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.arrow_upward_rounded,
+                        size: 74,
+                        color: Color(0xFF5B6CFF),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              ScaleTransition(
+                scale: _logoScale,
+                child: FadeTransition(
+                  opacity: _logoOpacity,
+                  child: const Column(
+                    children: [
+                      Text(
+                        'ARROW',
+                        style: TextStyle(
+                          fontSize: 42,
+                          height: 0.95,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                          color: Color(0xFF20263D),
+                        ),
+                      ),
+                      Text(
+                        'PUZZLE',
+                        style: TextStyle(
+                          fontSize: 42,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 4,
+                          color: Color(0xFF5B6CFF),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 42),
+
+              SizedBox(
+                width: 120,
+                child: LinearProgressIndicator(
+                  minHeight: 4,
+                  borderRadius: BorderRadius.circular(10),
+                  backgroundColor: const Color(0x225B6CFF),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Color(0xFF5B6CFF),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              const Text(
+                'Loading...',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1,
+                  color: Color(0xFF777E91),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
