@@ -735,28 +735,39 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
                                         ? animationValue
                                         : arrow.exitProgress;
 
-                                    final distance =
-                                        cellSize * 1.8 * progress;
+                                    final left =
+                                        boardPadding +
+                                        arrow.col * (cellSize + cellGap);
 
-                                    Offset offset;
+                                    final top =
+                                        boardPadding +
+                                        arrow.row * (cellSize + cellGap);
 
-                                    switch (arrow.direction) {
-                                      case ArrowDirection.up:
-                                        offset = Offset(0, -distance);
-                                        break;
+                                    // Move the arrow all the way to the
+                                    // corresponding 5x5 board boundary.
+                                    // Add one extra cell so the complete
+                                    // arrow visibly crosses the edge.
+                                    final distance = switch (arrow.direction) {
+                                      ArrowDirection.up =>
+                                        (top + cellSize) + cellSize * 0.35,
+                                      ArrowDirection.down =>
+                                        (boardSize - top) + cellSize * 0.35,
+                                      ArrowDirection.left =>
+                                        (left + cellSize) + cellSize * 0.35,
+                                      ArrowDirection.right =>
+                                        (boardSize - left) + cellSize * 0.35,
+                                    };
 
-                                      case ArrowDirection.down:
-                                        offset = Offset(0, distance);
-                                        break;
-
-                                      case ArrowDirection.left:
-                                        offset = Offset(-distance, 0);
-                                        break;
-
-                                      case ArrowDirection.right:
-                                        offset = Offset(distance, 0);
-                                        break;
-                                    }
+                                    final offset = switch (arrow.direction) {
+                                      ArrowDirection.up =>
+                                        Offset(0, -distance * progress),
+                                      ArrowDirection.down =>
+                                        Offset(0, distance * progress),
+                                      ArrowDirection.left =>
+                                        Offset(-distance * progress, 0),
+                                      ArrowDirection.right =>
+                                        Offset(distance * progress, 0),
+                                    };
 
                                     return Transform.translate(
                                       offset: offset,
