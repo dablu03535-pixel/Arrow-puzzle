@@ -287,6 +287,7 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+
 class GamePlaceholderScreen extends StatefulWidget {
   const GamePlaceholderScreen({super.key});
 
@@ -303,9 +304,10 @@ class ArrowTile {
     required this.direction,
   });
 
-  int row;
-  int col;
+  final int row;
+  final int col;
   final ArrowDirection direction;
+
   bool visible = true;
   bool moving = false;
   bool blocked = false;
@@ -313,9 +315,12 @@ class ArrowTile {
 
 class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     with TickerProviderStateMixin {
+  static const int gridSize = 5;
+
   late List<ArrowTile> arrows;
 
   int moves = 0;
+  bool levelCompleted = false;
 
   @override
   void initState() {
@@ -340,15 +345,17 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     ];
 
     moves = 0;
+    levelCompleted = false;
   }
 
-  List<ArrowTile> _visibleArrows() {
-    return arrows.where((a) => a.visible && !a.moving).toList();
+  List<ArrowTile> _activeArrows() {
+    return arrows.where((a) => a.visible).toList();
   }
 
   bool _isBlocked(ArrowTile arrow) {
-    for (final other in _visibleArrows()) {
+    for (final other in _activeArrows()) {
       if (identical(other, arrow)) continue;
+      if (other.moving) continue;
 
       switch (arrow.direction) {
         case ArrowDirection.up:
@@ -381,22 +388,22 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
   }
 
   Future<void> _tapArrow(ArrowTile arrow) async {
-    if (!arrow.visible || arrow.moving) return;
+    if (!mounted || !arrow.visible || arrow.moving || levelCompleted) {
+      return;
+    }
 
-    final blocked = _isBlocked(arrow);
-
-    if (blocked) {
+    if (_isBlocked(arrow)) {
       setState(() {
         arrow.blocked = true;
       });
 
-      await Future.delayed(const Duration(milliseconds: 350));
+      await Future.delayed(const Duration(milliseconds: 100));
 
-      if (mounted) {
-        setState(() {
-          arrow.blocked = false;
-        });
-      }
+      if (!mounted) return;
+
+      setState(() {
+        arrow.blocked = false;
+      });
 
       return;
     }
@@ -406,7 +413,8 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
       moves++;
     });
 
-    await Future.delayed(const Duration(milliseconds: 350));
+    // Arrow moves outside the board.
+    await Future.delayed(const Duration(milliseconds: 420));
 
     if (!mounted) return;
 
@@ -415,12 +423,17 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
       arrow.moving = false;
     });
 
-    if (arrows.every((a) => !a.visible)) {
+    // Check whether all arrows are gone.
+    if (_activeArrows().isEmpty) {
       await Future.delayed(const Duration(milliseconds: 250));
 
-      if (mounted) {
-        _showLevelComplete();
-      }
+      if (!mounted) return;
+
+      setState(() {
+        levelCompleted = true;
+      });
+
+      _showLevelComplete();
     }
   }
 
@@ -431,30 +444,38 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
   }
 
   void _showLevelComplete() {
-    showDialog(
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
           title: const Text(
-            '🎉 Level Complete!',
+            '🎉 LEVEL COMPLETE!',
             textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.w900),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const Icon(
+                Icons.celebration_rounded,
+                size: 70,
+                color: Color(0xFFFFB300),
+              ),
+              const SizedBox(height: 14),
               const Text(
                 'All arrows cleared!',
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Text(
                 'Moves: $moves',
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
@@ -462,14 +483,14 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
                 _resetLevel();
               },
               child: const Text('REPLAY'),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
                 Navigator.pop(context);
               },
               child: const Text('HOME'),
@@ -493,8 +514,47 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     }
   }
 
+  Color _arrowColor(ArrowDirection direction) {
+    switch (direction) {
+      case ArrowDirection.up:
+        return const Color(0xFF7B4DFF);
+      case ArrowDirection.down:
+        return const Color(0xFF43B02A);
+      case ArrowDirection.left:
+        return const Color(0xFFE53935);
+      case ArrowDirection.right:
+        return const Color(0xFFFFA000);
+    }
+  }
+
+  double _outsideX(ArrowTile arrow) {
+    switch (arrow.direction) {
+      case ArrowDirection.left:
+        return -1.4;
+      case ArrowDirection.right:
+        return gridSize + 0.4;
+      case ArrowDirection.up:
+      case ArrowDirection.down:
+        return arrow.col.toDouble();
+    }
+  }
+
+  double _outsideY(ArrowTile arrow) {
+    switch (arrow.direction) {
+      case ArrowDirection.up:
+        return -1.4;
+      case ArrowDirection.down:
+        return gridSize + 0.4;
+      case ArrowDirection.left:
+      case ArrowDirection.right:
+        return arrow.row.toDouble();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final remaining = _activeArrows().length;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF3F5FF),
       appBar: AppBar(
@@ -507,7 +567,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
         title: const Text(
           'LEVEL 1',
           style: TextStyle(
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w900,
             letterSpacing: 1,
           ),
         ),
@@ -528,132 +588,172 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _infoCard(Icons.touch_app_rounded, 'Moves', '$moves'),
+                _infoCard(
+                  Icons.touch_app_rounded,
+                  'MOVES',
+                  '$moves',
+                ),
                 const SizedBox(width: 12),
                 _infoCard(
                   Icons.keyboard_arrow_up_rounded,
-                  'Arrows',
-                  '${arrows.where((a) => a.visible).length}',
+                  'ARROWS',
+                  '$remaining',
                 ),
               ],
             ),
 
-            const Spacer(),
+            const SizedBox(height: 18),
 
-            Padding(
-              padding: const EdgeInsets.all(22),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x18000000),
-                        blurRadius: 25,
-                        offset: Offset(0, 12),
-                      ),
-                    ],
-                  ),
-                  child: GridView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 25,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 5,
-                      crossAxisSpacing: 7,
-                      mainAxisSpacing: 7,
-                    ),
-                    itemBuilder: (context, index) {
-                      final row = index ~/ 5;
-                      final col = index % 5;
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final boardSize = constraints.maxWidth;
+                        final gap = 7.0;
+                        final cellSize =
+                            (boardSize - gap * (gridSize - 1)) / gridSize;
 
-                      final cellArrows = arrows.where(
-                        (a) =>
-                            a.visible &&
-                            a.row == row &&
-                            a.col == col,
-                      );
-
-                      if (cellArrows.isEmpty) {
                         return Container(
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF5F6FC),
-                            borderRadius: BorderRadius.circular(13),
-                          ),
-                        );
-                      }
-
-                      final arrow = cellArrows.first;
-
-                      return GestureDetector(
-                        onTap: () => _tapArrow(arrow),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 120),
-                          curve: Curves.easeOut,
-                          transform: arrow.blocked
-                              ? (Matrix4.identity()
-                                ..translate(
-                                  arrow.blocked ? 5.0 : 0.0,
-                                ))
-                              : Matrix4.identity(),
-                          decoration: BoxDecoration(
-                            color: arrow.moving
-                                ? const Color(0xFFBFC7FF)
-                                : const Color(0xFF6575FF),
-                            borderRadius: BorderRadius.circular(15),
-                            boxShadow: [
+                            color: const Color(0xFF1E2742),
+                            borderRadius: BorderRadius.circular(28),
+                            boxShadow: const [
                               BoxShadow(
-                                color: const Color(0x405B6CFF),
-                                blurRadius: arrow.moving ? 20 : 8,
-                                offset: const Offset(0, 5),
+                                color: Color(0x30000000),
+                                blurRadius: 25,
+                                offset: Offset(0, 12),
                               ),
                             ],
                           ),
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 250),
-                            opacity: arrow.moving ? 0.25 : 1,
-                            child: Center(
-                              child: Icon(
-                                _arrowIcon(arrow.direction),
-                                color: Colors.white,
-                                size: 31,
-                              ),
+                          child: ClipRect(
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                // Empty board cells.
+                                for (int index = 0;
+                                    index < gridSize * gridSize;
+                                    index++)
+                                  Positioned(
+                                    left: (index % gridSize) *
+                                        (cellSize + gap),
+                                    top: (index ~/ gridSize) *
+                                        (cellSize + gap),
+                                    width: cellSize,
+                                    height: cellSize,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF11192D),
+                                        borderRadius:
+                                            BorderRadius.circular(13),
+                                        border: Border.all(
+                                          color: const Color(0x182F3B5C),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                // Arrow tiles.
+                                for (final arrow in arrows)
+                                  if (arrow.visible)
+                                    AnimatedPositioned(
+                                      duration: const Duration(
+                                        milliseconds: 420,
+                                      ),
+                                      curve: Curves.easeIn,
+                                      left: arrow.moving
+                                          ? _outsideX(arrow) *
+                                              (cellSize + gap)
+                                          : arrow.col *
+                                              (cellSize + gap),
+                                      top: arrow.moving
+                                          ? _outsideY(arrow) *
+                                              (cellSize + gap)
+                                          : arrow.row *
+                                              (cellSize + gap),
+                                      width: cellSize,
+                                      height: cellSize,
+                                      child: GestureDetector(
+                                        onTap: () => _tapArrow(arrow),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(
+                                            milliseconds: 100,
+                                          ),
+                                          curve: Curves.easeOut,
+                                          transform: arrow.blocked
+                                              ? (Matrix4.identity()
+                                                ..translate(5.0, 0.0))
+                                              : Matrix4.identity(),
+                                          decoration: BoxDecoration(
+                                            color: _arrowColor(
+                                              arrow.direction,
+                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(15),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: _arrowColor(
+                                                  arrow.direction,
+                                                ).withOpacity(0.45),
+                                                blurRadius:
+                                                    arrow.moving ? 18 : 8,
+                                                offset:
+                                                    const Offset(0, 5),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Center(
+                                            child: Icon(
+                                              _arrowIcon(arrow.direction),
+                                              color: Colors.white,
+                                              size: cellSize * 0.48,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                              ],
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
             ),
 
-            const Spacer(),
-
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 30),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 30),
               child: Text(
-                'Clear the arrows in the correct order',
+                remaining == 0
+                    ? 'Puzzle complete!'
+                    : 'Tap a free arrow to move it out',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   color: Color(0xFF697087),
                 ),
               ),
             ),
 
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _infoCard(IconData icon, String title, String value) {
+  Widget _infoCard(
+    IconData icon,
+    String title,
+    String value,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 15,
@@ -689,7 +789,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
           Text(
             value,
             style: const TextStyle(
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w900,
               fontSize: 15,
             ),
           ),
@@ -698,4 +798,3 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     );
   }
 }
-
