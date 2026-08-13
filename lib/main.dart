@@ -311,6 +311,10 @@ class ArrowTile {
   bool visible = true;
   bool moving = false;
   bool blocked = false;
+
+  // Visual exit animation progress.
+  // 0.0 = inside board, 1.0 = completely outside.
+  double exitProgress = 0.0;
 }
 
 class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
@@ -427,14 +431,14 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
       return;
     }
 
-    // Check the board BEFORE this arrow starts moving.
-    // Moving arrows are already considered removed from the puzzle.
+    // The path is checked using the current logical board.
+    // Moving/removed arrows are ignored by _isBlockedBy().
     if (_isBlockedBy(arrow, arrows)) {
       setState(() {
         arrow.blocked = true;
       });
 
-      await Future.delayed(const Duration(milliseconds: 180));
+      await Future.delayed(const Duration(milliseconds: 160));
 
       if (!mounted) return;
 
@@ -445,31 +449,30 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
       return;
     }
 
-    // IMPORTANT:
-    // There is NO global input lock anymore.
-    //
-    // The tapped arrow becomes logically removed immediately.
-    // Its visual exit animation continues independently.
+    // Remove this arrow logically immediately.
+    // Its visual copy remains on screen during the exit animation.
     setState(() {
       arrow.visible = false;
       arrow.moving = true;
+      arrow.exitProgress = 0.0;
       moves++;
     });
 
-    // Other arrows can now be tapped immediately.
-    //
-    // Wait only for THIS arrow's visual animation.
+    // IMPORTANT:
+    // There is no global input lock.
+    // Other arrows can be tapped immediately.
+
     await Future.delayed(const Duration(milliseconds: 380));
 
     if (!mounted) return;
 
     setState(() {
       arrow.moving = false;
+      arrow.exitProgress = 1.0;
     });
 
-    // Complete only after every arrow has finished its exit animation.
     if (arrows.every((a) => !a.visible && !a.moving)) {
-      await Future.delayed(const Duration(milliseconds: 150));
+      await Future.delayed(const Duration(milliseconds: 120));
 
       if (mounted) {
         _showLevelComplete();
@@ -550,42 +553,37 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
     ArrowTile arrow,
     double cellSize,
   ) {
-    if (arrow.moving) {
-      switch (arrow.direction) {
-        case ArrowDirection.left:
-          return -cellSize * 1.4;
-
-        case ArrowDirection.right:
-          return gridSize * cellSize + cellSize * 0.4;
-
-        case ArrowDirection.up:
-        case ArrowDirection.down:
-          return boardPadding + arrow.col * (cellSize + cellGap);
-      }
-    }
-
-    return boardPadding + arrow.col * (cellSize + cellGap);
+    return boardPadding +
+        arrow.col * (cellSize + cellGap);
   }
 
   double _topFor(
     ArrowTile arrow,
     double cellSize,
   ) {
-    if (arrow.moving) {
-      switch (arrow.direction) {
-        case ArrowDirection.up:
-          return -cellSize * 1.4;
+    return boardPadding +
+        arrow.row * (cellSize + cellGap);
+  }
 
-        case ArrowDirection.down:
-          return gridSize * cellSize + cellSize * 0.4;
+  Offset _exitOffset(
+    ArrowTile arrow,
+    double cellSize,
+  ) {
+    final distance = cellSize * 1.8 * arrow.exitProgress;
 
-        case ArrowDirection.left:
-        case ArrowDirection.right:
-          return boardPadding + arrow.row * (cellSize + cellGap);
-      }
+    switch (arrow.direction) {
+      case ArrowDirection.up:
+        return Offset(0, -distance);
+
+      case ArrowDirection.down:
+        return Offset(0, distance);
+
+      case ArrowDirection.left:
+        return Offset(-distance, 0);
+
+      case ArrowDirection.right:
+        return Offset(distance, 0);
     }
-
-    return boardPadding + arrow.row * (cellSize + cellGap);
   }
 
   @override
@@ -693,63 +691,99 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
                             ),
                           ),
 
-                          // Every arrow has a FIXED row/column.
-                          // Only the tapped arrow gets an exit offset.
+                          // Every arrow has a permanently fixed board position.
+                          // ONLY its visual child moves during exit animation.
                           for (final arrow in arrows)
                             if (arrow.visible || arrow.moving)
-                              AnimatedPositioned(
-                                duration:
-                                    const Duration(milliseconds: 380),
-                                curve: Curves.easeInCubic,
+                              Positioned(
                                 left: _leftFor(arrow, cellSize),
                                 top: _topFor(arrow, cellSize),
                                 width: cellSize,
                                 height: cellSize,
-                                child: IgnorePointer(
-                                  ignoring: arrow.moving,
-                                  child: GestureDetector(
-                                    onTap: () => _tapArrow(arrow),
-                                    child: AnimatedContainer(
-                                    duration:
-                                        const Duration(milliseconds: 100),
-                                    curve: Curves.easeOut,
-                                    transform: arrow.blocked
-                                        ? (Matrix4.identity()
-                                          ..translate(5.0, 0.0))
-                                        : Matrix4.identity(),
-                                    decoration: BoxDecoration(
-                                      color: arrow.moving
-                                          ? const Color(0xFFBFC7FF)
-                                          : const Color(0xFF6575FF),
-                                      borderRadius:
-                                          BorderRadius.circular(15),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color:
-                                              const Color(0x405B6CFF),
-                                          blurRadius:
-                                              arrow.moving ? 20 : 8,
-                                          offset: const Offset(0, 5),
+                                child: TweenAnimationBuilder<double>(
+                                  key: ValueKey(
+                                    '${arrow.visible}-${arrow.moving}-${arrow.exitProgress}',
+                                  ),
+                                  tween: Tween<double>(
+                                    begin: arrow.moving ? 0.0 : 1.0,
+                                    end: arrow.moving ? 1.0 : 1.0,
+                                  ),
+                                  duration:
+                                      const Duration(milliseconds: 380),
+                                  curve: Curves.easeInCubic,
+                                  builder: (context, animationValue, child) {
+                                    final progress = arrow.moving
+                                        ? animationValue
+                                        : arrow.exitProgress;
+
+                                    final distance =
+                                        cellSize * 1.8 * progress;
+
+                                    Offset offset;
+
+                                    switch (arrow.direction) {
+                                      case ArrowDirection.up:
+                                        offset = Offset(0, -distance);
+                                        break;
+
+                                      case ArrowDirection.down:
+                                        offset = Offset(0, distance);
+                                        break;
+
+                                      case ArrowDirection.left:
+                                        offset = Offset(-distance, 0);
+                                        break;
+
+                                      case ArrowDirection.right:
+                                        offset = Offset(distance, 0);
+                                        break;
+                                    }
+
+                                    return Transform.translate(
+                                      offset: offset,
+                                      child: child,
+                                    );
+                                  },
+                                  child: IgnorePointer(
+                                    ignoring: arrow.moving,
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () => _tapArrow(arrow),
+                                      child: AnimatedContainer(
+                                        duration:
+                                            const Duration(milliseconds: 100),
+                                        curve: Curves.easeOut,
+                                        transform: arrow.blocked
+                                            ? (Matrix4.identity()
+                                              ..translate(5.0, 0.0))
+                                            : Matrix4.identity(),
+                                        decoration: BoxDecoration(
+                                          color: arrow.moving
+                                              ? const Color(0xFFBFC7FF)
+                                              : const Color(0xFF6575FF),
+                                          borderRadius:
+                                              BorderRadius.circular(15),
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: Color(0x405B6CFF),
+                                              blurRadius: 8,
+                                              offset: Offset(0, 5),
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                    child: AnimatedOpacity(
-                                      duration:
-                                          const Duration(milliseconds: 180),
-                                      opacity:
-                                          arrow.moving ? 0.55 : 1,
-                                      child: Center(
-                                        child: Icon(
-                                          _arrowIcon(arrow.direction),
-                                          color: Colors.white,
-                                          size: 31,
+                                        child: Center(
+                                          child: Icon(
+                                            _arrowIcon(arrow.direction),
+                                            color: Colors.white,
+                                            size: 31,
+                                          ),
                                         ),
                                       ),
-                                    ),
                                     ),
                                   ),
                                 ),
                               ),
+
                         ],
                       ),
                     );
