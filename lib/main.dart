@@ -463,33 +463,38 @@ class HomeScreen extends StatelessWidget {
 
                 // Bottom menu
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _bottomItem(
-                      Icons.grid_view_rounded,
-                      'Levels',
-                      onTap: () => _showComingSoon(
-                        context,
-                        'Levels',
+                    Expanded(
+                      child: _bottomItem(
                         Icons.grid_view_rounded,
+                        'Levels',
+                        onTap: () => _showComingSoon(
+                          context,
+                          'Levels',
+                          Icons.grid_view_rounded,
+                        ),
                       ),
                     ),
-                    _bottomItem(
-                      Icons.card_giftcard_rounded,
-                      'Rewards',
-                      onTap: () => _showComingSoon(
-                        context,
-                        'Rewards',
+                    Expanded(
+                      child: _bottomItem(
                         Icons.card_giftcard_rounded,
+                        'Rewards',
+                        onTap: () => _showComingSoon(
+                          context,
+                          'Rewards',
+                          Icons.card_giftcard_rounded,
+                        ),
                       ),
                     ),
-                    _bottomItem(
-                      Icons.emoji_events_rounded,
-                      'Stats',
-                      onTap: () => _showComingSoon(
-                        context,
-                        'Stats',
+                    Expanded(
+                      child: _bottomItem(
                         Icons.emoji_events_rounded,
+                        'Stats',
+                        onTap: () => _showComingSoon(
+                          context,
+                          'Stats',
+                          Icons.emoji_events_rounded,
+                        ),
                       ),
                     ),
                   ],
@@ -537,12 +542,14 @@ class HomeScreen extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 7,
-          ),
-          child: Column(
+        child: SizedBox(
+          width: double.infinity,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 7,
+            ),
+            child: Column(
             children: [
               Icon(
                 icon,
