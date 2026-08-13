@@ -313,14 +313,14 @@ class ArrowTile {
   bool blocked = false;
 }
 
-class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
-    with TickerProviderStateMixin {
+class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
   static const int gridSize = 5;
+  static const double boardPadding = 10;
+  static const double cellGap = 7;
 
   late List<ArrowTile> arrows;
-
   int moves = 0;
-  bool levelCompleted = false;
+  bool inputLocked = false;
 
   @override
   void initState() {
@@ -329,7 +329,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
   }
 
   void _createLevel() {
-    arrows = [
+    final level = <ArrowTile>[
       ArrowTile(row: 0, col: 0, direction: ArrowDirection.right),
       ArrowTile(row: 0, col: 2, direction: ArrowDirection.down),
       ArrowTile(row: 1, col: 2, direction: ArrowDirection.down),
@@ -340,64 +340,105 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
       ArrowTile(row: 4, col: 1, direction: ArrowDirection.right),
       ArrowTile(row: 4, col: 3, direction: ArrowDirection.up),
       ArrowTile(row: 3, col: 3, direction: ArrowDirection.up),
-      ArrowTile(row: 1, col: 4, direction: ArrowDirection.down),
+
+      // Important: this arrow points right instead of down.
+      // This removes the previous ↓ ↔ ↑ deadlock.
+      ArrowTile(row: 1, col: 4, direction: ArrowDirection.right),
+
       ArrowTile(row: 3, col: 4, direction: ArrowDirection.up),
     ];
 
+    // Never allow an unsolvable level to enter the game.
+    if (!_isLevelSolvable(level)) {
+      throw StateError('Level 1 is not solvable.');
+    }
+
+    arrows = level;
     moves = 0;
-    levelCompleted = false;
+    inputLocked = false;
   }
 
-  List<ArrowTile> _activeArrows() {
-    return arrows.where((a) => a.visible).toList();
+  List<ArrowTile> _remaining(List<ArrowTile> list) {
+    return list.where((a) => a.visible).toList();
   }
 
-  bool _isBlocked(ArrowTile arrow) {
-    for (final other in _activeArrows()) {
+  bool _isBlockedBy(
+    ArrowTile arrow,
+    List<ArrowTile> list,
+  ) {
+    for (final other in _remaining(list)) {
       if (identical(other, arrow)) continue;
-      if (other.moving) continue;
 
       switch (arrow.direction) {
         case ArrowDirection.up:
           if (other.col == arrow.col && other.row < arrow.row) {
             return true;
           }
-          break;
 
         case ArrowDirection.down:
           if (other.col == arrow.col && other.row > arrow.row) {
             return true;
           }
-          break;
 
         case ArrowDirection.left:
           if (other.row == arrow.row && other.col < arrow.col) {
             return true;
           }
-          break;
 
         case ArrowDirection.right:
           if (other.row == arrow.row && other.col > arrow.col) {
             return true;
           }
-          break;
       }
     }
 
     return false;
   }
 
+  bool _isLevelSolvable(List<ArrowTile> original) {
+    // Work on positions/directions only. This simulates removing
+    // only arrows that are currently free.
+    final remaining = original
+        .map(
+          (a) => ArrowTile(
+            row: a.row,
+            col: a.col,
+            direction: a.direction,
+          ),
+        )
+        .toList();
+
+    while (remaining.isNotEmpty) {
+      final free = remaining
+          .where((arrow) => !_isBlockedBy(arrow, remaining))
+          .toList();
+
+      if (free.isEmpty) {
+        return false;
+      }
+
+      // Remove all currently free arrows from the simulation.
+      remaining.removeWhere((arrow) => free.contains(arrow));
+    }
+
+    return true;
+  }
+
   Future<void> _tapArrow(ArrowTile arrow) async {
-    if (!mounted || !arrow.visible || arrow.moving || levelCompleted) {
+    if (inputLocked || !arrow.visible || arrow.moving) {
       return;
     }
 
-    if (_isBlocked(arrow)) {
+    // IMPORTANT:
+    // Only the arrow that the player tapped is checked and moved.
+    final blocked = _isBlockedBy(arrow, arrows);
+
+    if (blocked) {
       setState(() {
         arrow.blocked = true;
       });
 
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (!mounted) return;
 
@@ -409,31 +450,28 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     }
 
     setState(() {
+      inputLocked = true;
       arrow.moving = true;
       moves++;
     });
 
-    // Arrow moves outside the board.
-    await Future.delayed(const Duration(milliseconds: 420));
+    // Let the AnimatedPositioned animation finish.
+    await Future.delayed(const Duration(milliseconds: 380));
 
     if (!mounted) return;
 
     setState(() {
       arrow.visible = false;
       arrow.moving = false;
+      inputLocked = false;
     });
 
-    // Check whether all arrows are gone.
-    if (_activeArrows().isEmpty) {
+    if (arrows.every((a) => !a.visible)) {
       await Future.delayed(const Duration(milliseconds: 250));
 
-      if (!mounted) return;
-
-      setState(() {
-        levelCompleted = true;
-      });
-
-      _showLevelComplete();
+      if (mounted) {
+        _showLevelComplete();
+      }
     }
   }
 
@@ -444,38 +482,30 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
   }
 
   void _showLevelComplete() {
-    showDialog<void>(
+    showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) {
+      builder: (context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
           title: const Text(
-            '🎉 LEVEL COMPLETE!',
+            '🎉 Level Complete!',
             textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.w900),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.celebration_rounded,
-                size: 70,
-                color: Color(0xFFFFB300),
-              ),
-              const SizedBox(height: 14),
               const Text(
                 'All arrows cleared!',
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Text(
                 'Moves: $moves',
                 style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
@@ -483,14 +513,14 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(dialogContext);
+                Navigator.pop(context);
                 _resetLevel();
               },
               child: const Text('REPLAY'),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(dialogContext);
+                Navigator.pop(context);
                 Navigator.pop(context);
               },
               child: const Text('HOME'),
@@ -514,47 +544,50 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     }
   }
 
-  Color _arrowColor(ArrowDirection direction) {
-    switch (direction) {
-      case ArrowDirection.up:
-        return const Color(0xFF7B4DFF);
-      case ArrowDirection.down:
-        return const Color(0xFF43B02A);
-      case ArrowDirection.left:
-        return const Color(0xFFE53935);
-      case ArrowDirection.right:
-        return const Color(0xFFFFA000);
+  double _leftFor(
+    ArrowTile arrow,
+    double cellSize,
+  ) {
+    if (arrow.moving) {
+      switch (arrow.direction) {
+        case ArrowDirection.left:
+          return -cellSize * 1.4;
+
+        case ArrowDirection.right:
+          return gridSize * cellSize + cellSize * 0.4;
+
+        case ArrowDirection.up:
+        case ArrowDirection.down:
+          return boardPadding + arrow.col * (cellSize + cellGap);
+      }
     }
+
+    return boardPadding + arrow.col * (cellSize + cellGap);
   }
 
-  double _outsideX(ArrowTile arrow) {
-    switch (arrow.direction) {
-      case ArrowDirection.left:
-        return -1.4;
-      case ArrowDirection.right:
-        return gridSize + 0.4;
-      case ArrowDirection.up:
-      case ArrowDirection.down:
-        return arrow.col.toDouble();
-    }
-  }
+  double _topFor(
+    ArrowTile arrow,
+    double cellSize,
+  ) {
+    if (arrow.moving) {
+      switch (arrow.direction) {
+        case ArrowDirection.up:
+          return -cellSize * 1.4;
 
-  double _outsideY(ArrowTile arrow) {
-    switch (arrow.direction) {
-      case ArrowDirection.up:
-        return -1.4;
-      case ArrowDirection.down:
-        return gridSize + 0.4;
-      case ArrowDirection.left:
-      case ArrowDirection.right:
-        return arrow.row.toDouble();
+        case ArrowDirection.down:
+          return gridSize * cellSize + cellSize * 0.4;
+
+        case ArrowDirection.left:
+        case ArrowDirection.right:
+          return boardPadding + arrow.row * (cellSize + cellGap);
+      }
     }
+
+    return boardPadding + arrow.row * (cellSize + cellGap);
   }
 
   @override
   Widget build(BuildContext context) {
-    final remaining = _activeArrows().length;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF3F5FF),
       appBar: AppBar(
@@ -567,7 +600,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
         title: const Text(
           'LEVEL 1',
           style: TextStyle(
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w800,
             letterSpacing: 1,
           ),
         ),
@@ -590,159 +623,152 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
               children: [
                 _infoCard(
                   Icons.touch_app_rounded,
-                  'MOVES',
+                  'Moves',
                   '$moves',
                 ),
                 const SizedBox(width: 12),
                 _infoCard(
                   Icons.keyboard_arrow_up_rounded,
-                  'ARROWS',
-                  '$remaining',
+                  'Arrows',
+                  '${arrows.where((a) => a.visible).length}',
                 ),
               ],
             ),
 
-            const SizedBox(height: 18),
+            const Spacer(),
 
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 22),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final boardSize = constraints.maxWidth;
-                        final gap = 7.0;
-                        final cellSize =
-                            (boardSize - gap * (gridSize - 1)) / gridSize;
+            Padding(
+              padding: const EdgeInsets.all(22),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final boardSize = constraints.maxWidth;
+                    final cellSize =
+                        (boardSize -
+                                (boardPadding * 2) -
+                                (cellGap * (gridSize - 1))) /
+                            gridSize;
 
-                        return Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E2742),
-                            borderRadius: BorderRadius.circular(28),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x30000000),
-                                blurRadius: 25,
-                                offset: Offset(0, 12),
-                              ),
-                            ],
+                    return Container(
+                      clipBehavior: Clip.none,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x18000000),
+                            blurRadius: 25,
+                            offset: Offset(0, 12),
                           ),
-                          child: ClipRect(
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                // Empty board cells.
-                                for (int index = 0;
-                                    index < gridSize * gridSize;
-                                    index++)
-                                  Positioned(
-                                    left: (index % gridSize) *
-                                        (cellSize + gap),
-                                    top: (index ~/ gridSize) *
-                                        (cellSize + gap),
-                                    width: cellSize,
-                                    height: cellSize,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF11192D),
-                                        borderRadius:
-                                            BorderRadius.circular(13),
-                                        border: Border.all(
-                                          color: const Color(0x182F3B5C),
+                        ],
+                      ),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // Fixed 5x5 board.
+                          Padding(
+                            padding: const EdgeInsets.all(boardPadding),
+                            child: GridView.builder(
+                              physics:
+                                  const NeverScrollableScrollPhysics(),
+                              itemCount: gridSize * gridSize,
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: gridSize,
+                                crossAxisSpacing: cellGap,
+                                mainAxisSpacing: cellGap,
+                              ),
+                              itemBuilder: (context, index) {
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F6FC),
+                                    borderRadius:
+                                        BorderRadius.circular(13),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+
+                          // Every arrow has a FIXED row/column.
+                          // Only the tapped arrow gets an exit offset.
+                          for (final arrow in arrows)
+                            if (arrow.visible)
+                              AnimatedPositioned(
+                                duration:
+                                    const Duration(milliseconds: 380),
+                                curve: Curves.easeInCubic,
+                                left: _leftFor(arrow, cellSize),
+                                top: _topFor(arrow, cellSize),
+                                width: cellSize,
+                                height: cellSize,
+                                child: GestureDetector(
+                                  onTap: () => _tapArrow(arrow),
+                                  child: AnimatedContainer(
+                                    duration:
+                                        const Duration(milliseconds: 100),
+                                    curve: Curves.easeOut,
+                                    transform: arrow.blocked
+                                        ? (Matrix4.identity()
+                                          ..translate(5.0, 0.0))
+                                        : Matrix4.identity(),
+                                    decoration: BoxDecoration(
+                                      color: arrow.moving
+                                          ? const Color(0xFFBFC7FF)
+                                          : const Color(0xFF6575FF),
+                                      borderRadius:
+                                          BorderRadius.circular(15),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color:
+                                              const Color(0x405B6CFF),
+                                          blurRadius:
+                                              arrow.moving ? 20 : 8,
+                                          offset: const Offset(0, 5),
+                                        ),
+                                      ],
+                                    ),
+                                    child: AnimatedOpacity(
+                                      duration:
+                                          const Duration(milliseconds: 180),
+                                      opacity:
+                                          arrow.moving ? 0.55 : 1,
+                                      child: Center(
+                                        child: Icon(
+                                          _arrowIcon(arrow.direction),
+                                          color: Colors.white,
+                                          size: 31,
                                         ),
                                       ),
                                     ),
                                   ),
-
-                                // Arrow tiles.
-                                for (final arrow in arrows)
-                                  if (arrow.visible)
-                                    AnimatedPositioned(
-                                      duration: const Duration(
-                                        milliseconds: 420,
-                                      ),
-                                      curve: Curves.easeIn,
-                                      left: arrow.moving
-                                          ? _outsideX(arrow) *
-                                              (cellSize + gap)
-                                          : arrow.col *
-                                              (cellSize + gap),
-                                      top: arrow.moving
-                                          ? _outsideY(arrow) *
-                                              (cellSize + gap)
-                                          : arrow.row *
-                                              (cellSize + gap),
-                                      width: cellSize,
-                                      height: cellSize,
-                                      child: GestureDetector(
-                                        onTap: () => _tapArrow(arrow),
-                                        child: AnimatedContainer(
-                                          duration: const Duration(
-                                            milliseconds: 100,
-                                          ),
-                                          curve: Curves.easeOut,
-                                          transform: arrow.blocked
-                                              ? (Matrix4.identity()
-                                                ..translate(5.0, 0.0))
-                                              : Matrix4.identity(),
-                                          decoration: BoxDecoration(
-                                            color: _arrowColor(
-                                              arrow.direction,
-                                            ),
-                                            borderRadius:
-                                                BorderRadius.circular(15),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: _arrowColor(
-                                                  arrow.direction,
-                                                ).withOpacity(0.45),
-                                                blurRadius:
-                                                    arrow.moving ? 18 : 8,
-                                                offset:
-                                                    const Offset(0, 5),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Center(
-                                            child: Icon(
-                                              _arrowIcon(arrow.direction),
-                                              color: Colors.white,
-                                              size: cellSize * 0.48,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                                ),
+                              ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30),
+            const Spacer(),
+
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 30),
               child: Text(
-                remaining == 0
-                    ? 'Puzzle complete!'
-                    : 'Tap a free arrow to move it out',
+                'Tap an arrow only when its path is clear',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   color: Color(0xFF697087),
                 ),
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
           ],
         ),
       ),
@@ -789,7 +815,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
           Text(
             value,
             style: const TextStyle(
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 15,
             ),
           ),
