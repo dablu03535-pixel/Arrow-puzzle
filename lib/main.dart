@@ -678,6 +678,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             onTap: () => _showComingSoon(
                               context,
                               'Settings',
+                              Icons.settings_rounded,
                             ),
                           ),
                           const Spacer(),
@@ -928,6 +929,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () => _showComingSoon(
                           context,
                           'Daily Challenge',
+                          Icons.calendar_month_rounded,
                         ),
                       ),
 
@@ -945,6 +947,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () => _showComingSoon(
                           context,
                           'Levels',
+                          Icons.grid_view_rounded,
                         ),
                       ),
 
@@ -964,6 +967,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               onTap: () => _showComingSoon(
                                 context,
                                 'Shop',
+                                Icons.storefront_rounded,
                               ),
                             ),
                           ),
@@ -977,6 +981,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               onTap: () => _showComingSoon(
                                 context,
                                 'Rewards',
+                                Icons.card_giftcard_rounded,
                               ),
                             ),
                           ),
@@ -990,6 +995,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               onTap: () => _showComingSoon(
                                 context,
                                 'Stats',
+                                Icons.bar_chart_rounded,
                               ),
                             ),
                           ),
@@ -1070,6 +1076,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         () => _showComingSoon(
                           context,
                           'Trophies',
+                          Icons.emoji_events_rounded,
                         ),
                       ),
                     ),
@@ -1081,6 +1088,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         () => _showComingSoon(
                           context,
                           'Rewards',
+                          Icons.card_giftcard_rounded,
                         ),
                       ),
                     ),
@@ -1092,6 +1100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         () => _showComingSoon(
                           context,
                           'Shop',
+                          Icons.storefront_rounded,
                         ),
                       ),
                     ),
@@ -1103,6 +1112,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         () => _showComingSoon(
                           context,
                           'Settings',
+                          Icons.settings_rounded,
                         ),
                       ),
                     ),
