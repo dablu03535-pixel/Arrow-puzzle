@@ -234,248 +234,495 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF080D1D),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFF7F9FF),
-              Color(0xFFE9EEFF),
+              Color(0xFF101A3A),
+              Color(0xFF080D1D),
             ],
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                const SizedBox(height: 18),
-
-                // Top bar
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _circleButton(
-                      icon: Icons.settings_rounded,
-                      onTap: () => _showComingSoon(
-                        context,
-                        'Settings',
-                        Icons.settings_rounded,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 9,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x18000000),
-                            blurRadius: 12,
-                            offset: Offset(0, 5),
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
+                  child: Column(
+                    children: [
+                      // TOP BAR
+                      Row(
+                        children: [
+                          _circleButton(
+                            icon: Icons.settings_rounded,
+                            onTap: () => _showComingSoon(
+                              context,
+                              'Settings',
+                              Icons.settings_rounded,
+                            ),
+                          ),
+                          const Spacer(),
+                          _topPill(
+                            icon: Icons.favorite_rounded,
+                            value: '5',
+                            iconColor: const Color(0xFFFF4F64),
+                          ),
+                          const SizedBox(width: 8),
+                          _topPill(
+                            icon: Icons.monetization_on_rounded,
+                            value: '1250',
+                            iconColor: const Color(0xFFFFC928),
                           ),
                         ],
                       ),
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.monetization_on_rounded,
-                            color: Color(0xFFFFB300),
-                            size: 22,
+
+                      const SizedBox(height: 34),
+
+                      // LOGO
+                      const Text(
+                        'ARROW',
+                        style: TextStyle(
+                          fontSize: 45,
+                          height: 0.95,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 2,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Color(0x665B6CFF),
+                              blurRadius: 18,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Text(
+                        'PUZZLE',
+                        style: TextStyle(
+                          fontSize: 45,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 4,
+                          color: Color(0xFF6C7CFF),
+                          shadows: [
+                            Shadow(
+                              color: Color(0x665B6CFF),
+                              blurRadius: 18,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 22),
+
+                      // ARROW ICON
+                      Container(
+                        width: 108,
+                        height: 108,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF111A35),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: const Color(0x335B6CFF),
+                            width: 1.2,
                           ),
-                          SizedBox(width: 7),
-                          Text(
-                            '1250',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x445B6CFF),
+                              blurRadius: 30,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.arrow_upward_rounded,
+                            size: 68,
+                            color: Color(0xFF6878FF),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      // PLAY
+                      SizedBox(
+                        width: double.infinity,
+                        height: 62,
+                        child: ElevatedButton(
+                          onPressed: () => _startGame(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF58C72D),
+                            foregroundColor: Colors.white,
+                            elevation: 10,
+                            shadowColor: const Color(0x6658C72D),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.play_arrow_rounded,
+                                size: 31,
+                              ),
+                              SizedBox(width: 7),
+                              Text(
+                                'PLAY',
+                                style: TextStyle(
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // CONTINUE
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: OutlinedButton(
+                          onPressed: () => _startGame(context),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: const Color(0xFF151F3D),
+                            side: const BorderSide(
+                              color: Color(0x665B6CFF),
+                              width: 1.3,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(17),
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.play_circle_outline_rounded,
+                                size: 25,
+                                color: Color(0xFF7D8BFF),
+                              ),
+                              SizedBox(width: 9),
+                              Text(
+                                'CONTINUE',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.7,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'LEVEL 1',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF9CA5C0),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // DAILY CHALLENGE
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: OutlinedButton(
+                          onPressed: () => _showComingSoon(
+                            context,
+                            'Daily Challenge',
+                            Icons.calendar_month_rounded,
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: const Color(0xFF171A45),
+                            side: const BorderSide(
+                              color: Color(0x665B6CFF),
+                              width: 1.3,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(17),
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.calendar_month_rounded,
+                                color: Color(0xFF9B6CFF),
+                              ),
+                              SizedBox(width: 9),
+                              Text(
+                                'DAILY CHALLENGE',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // LEVELS
+                      _largeMenuButton(
+                        icon: Icons.grid_view_rounded,
+                        title: 'LEVELS',
+                        subtitle: 'Choose your next puzzle',
+                        iconColor: const Color(0xFF5B8CFF),
+                        onTap: () => _showComingSoon(
+                          context,
+                          'Levels',
+                          Icons.grid_view_rounded,
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // SHOP + REWARDS
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _smallMenuButton(
+                              icon: Icons.storefront_rounded,
+                              title: 'SHOP',
+                              iconColor: const Color(0xFFFFC928),
+                              onTap: () => _showComingSoon(
+                                context,
+                                'Shop',
+                                Icons.storefront_rounded,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _smallMenuButton(
+                              icon: Icons.card_giftcard_rounded,
+                              title: 'REWARDS',
+                              iconColor: const Color(0xFFFF6D9B),
+                              onTap: () => _showComingSoon(
+                                context,
+                                'Rewards',
+                                Icons.card_giftcard_rounded,
+                              ),
                             ),
                           ),
                         ],
                       ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // BOTTOM NAVIGATION
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0D1429),
+                  border: Border(
+                    top: BorderSide(
+                      color: Color(0x221FFFFF),
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _bottomItem(
+                        Icons.home_rounded,
+                        'HOME',
+                        onTap: () {},
+                        active: true,
+                      ),
+                    ),
+                    Expanded(
+                      child: _bottomItem(
+                        Icons.emoji_events_rounded,
+                        'TROPHIES',
+                        onTap: () => _showComingSoon(
+                          context,
+                          'Trophies',
+                          Icons.emoji_events_rounded,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: _bottomItem(
+                        Icons.bar_chart_rounded,
+                        'STATS',
+                        onTap: () => _showComingSoon(
+                          context,
+                          'Stats',
+                          Icons.bar_chart_rounded,
+                        ),
+                      ),
                     ),
                   ],
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                const Spacer(),
-
-                // Logo
-                const Text(
-                  'ARROW',
-                  style: TextStyle(
-                    fontSize: 46,
-                    height: 0.95,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2,
-                    color: Color(0xFF20263D),
-                  ),
-                ),
-                const Text(
-                  'PUZZLE',
-                  style: TextStyle(
-                    fontSize: 46,
-                    height: 1,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 4,
-                    color: Color(0xFF5B6CFF),
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                // Arrow logo
-                Container(
-                  width: 112,
-                  height: 112,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x225B6CFF),
-                        blurRadius: 25,
-                        offset: Offset(0, 12),
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.arrow_upward_rounded,
-                      size: 70,
-                      color: Color(0xFF5B6CFF),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 38),
-
-                // PLAY button
-                SizedBox(
-                  width: double.infinity,
-                  height: 62,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                        await Future.delayed(
-                          const Duration(milliseconds: 120),
-                        );
-                        if (context.mounted) {
-                          _startGame(context);
-                        }
-                      },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5B6CFF),
-                      foregroundColor: Colors.white,
-                      elevation: 8,
-                      shadowColor: const Color(0x445B6CFF),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.play_arrow_rounded, size: 30),
-                        SizedBox(width: 8),
-                        Text(
-                          'PLAY',
-                          style: TextStyle(
-                            fontSize: 21,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                // Daily Challenge
-                SizedBox(
-                  width: double.infinity,
-                  height: 58,
-                  child: OutlinedButton(
-                    onPressed: () => _showComingSoon(
-                      context,
-                      'Daily Challenge',
-                      Icons.calendar_month_rounded,
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF30384F),
-                      side: const BorderSide(
-                        color: Color(0x335B6CFF),
-                        width: 1.5,
-                      ),
-                      backgroundColor: Colors.white.withOpacity(0.65),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.calendar_month_rounded),
-                        SizedBox(width: 9),
-                        Text(
-                          'DAILY CHALLENGE',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const Spacer(),
-
-                  // Bottom menu
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _bottomItem(
-                          Icons.grid_view_rounded,
-                          'Levels',
-                          onTap: () => _showComingSoon(
-                            context,
-                            'Levels',
-                            Icons.grid_view_rounded,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: _bottomItem(
-                          Icons.card_giftcard_rounded,
-                          'Rewards',
-                          onTap: () => _showComingSoon(
-                            context,
-                            'Rewards',
-                            Icons.card_giftcard_rounded,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: _bottomItem(
-                          Icons.emoji_events_rounded,
-                          'Stats',
-                          onTap: () => _showComingSoon(
-                            context,
-                            'Stats',
-                            Icons.emoji_events_rounded,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 18),
-              ],
+  static Widget _topPill({
+    required IconData icon,
+    required String value,
+    required Color iconColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 11,
+        vertical: 8,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF151F3A),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0x332F3C62),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: iconColor,
+            size: 20,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _largeMenuButton({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: const Color(0xFF111A32),
+      borderRadius: BorderRadius.circular(17),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(17),
+        child: Container(
+          height: 67,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(
+              color: const Color(0x263C4B73),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 29,
+                color: iconColor,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: Color(0xFF7E88A5),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Color(0xFF6E7895),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _smallMenuButton({
+    required IconData icon,
+    required String title,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: const Color(0xFF111A32),
+      borderRadius: BorderRadius.circular(17),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(17),
+        child: Container(
+          height: 60,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(
+              color: const Color(0x263C4B73),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: iconColor,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -487,18 +734,59 @@ class HomeScreen extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return Material(
-      color: Colors.white,
-      elevation: 3,
+      color: const Color(0xFF151F3A),
+      elevation: 2,
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(11),
           child: Icon(
             icon,
-            color: const Color(0xFF30384F),
-            size: 23,
+            color: Colors.white,
+            size: 22,
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _bottomItem(
+    IconData icon,
+    String label, {
+    required VoidCallback onTap,
+    bool active = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 25,
+                color: active
+                    ? const Color(0xFF6C7CFF)
+                    : const Color(0xFF65708E),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: active
+                      ? const Color(0xFF6C7CFF)
+                      : const Color(0xFF65708E),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -542,50 +830,7 @@ class HomeScreen extends StatelessWidget {
       },
     );
   }
-
-  static Widget _bottomItem(
-    IconData icon,
-    String label, {
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: SizedBox(
-          width: double.infinity,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 7,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
-                  size: 25,
-                  color: const Color(0xFF5B6CFF),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF5A6175),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
-
 
 class GamePlaceholderScreen extends StatefulWidget {
   const GamePlaceholderScreen({super.key});
