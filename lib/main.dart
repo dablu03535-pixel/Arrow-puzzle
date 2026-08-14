@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const ArrowPuzzleApp());
@@ -219,16 +220,57 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _lastLevel = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLastLevel();
+  }
+
+  Future<void> _loadLastLevel() async {
+    final prefs = await SharedPreferences.getInstance();
+    final level = prefs.getInt('last_level') ?? 1;
+
+    if (!mounted) return;
+
+    setState(() {
+      _lastLevel = level < 1 ? 1 : level;
+    });
+  }
+
+  Future<void> _saveLastLevel(int level) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('last_level', level);
+
+    if (!mounted) return;
+
+    setState(() {
+      _lastLevel = level;
+    });
+  }
+
   void _startGame(BuildContext context) {
+    _saveLastLevel(_lastLevel);
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const GamePlaceholderScreen(),
+        builder: (_) => GamePlaceholderScreen(level: _lastLevel),
       ),
     );
+  }
+
+  void _continueGame(BuildContext context) {
+    _startGame(context);
   }
 
   @override
@@ -392,7 +434,7 @@ class HomeScreen extends StatelessWidget {
                         width: double.infinity,
                         height: 56,
                         child: OutlinedButton(
-                          onPressed: () => _startGame(context),
+                          onPressed: () => _continueGame(context),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
                             backgroundColor: const Color(0xFF151F3D),
@@ -423,7 +465,7 @@ class HomeScreen extends StatelessWidget {
                               ),
                               SizedBox(width: 8),
                               Text(
-                                'LEVEL 1',
+                                'LEVEL $_lastLevel',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFF9CA5C0),
@@ -833,7 +875,12 @@ class HomeScreen extends StatelessWidget {
 }
 
 class GamePlaceholderScreen extends StatefulWidget {
-  const GamePlaceholderScreen({super.key});
+  const GamePlaceholderScreen({
+    super.key,
+    this.level = 1,
+  });
+
+  final int level;
 
   @override
   State<GamePlaceholderScreen> createState() => _GamePlaceholderScreenState();
@@ -876,32 +923,42 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
   }
 
   void _createLevel() {
-    final level = <ArrowTile>[
-      ArrowTile(row: 0, col: 0, direction: ArrowDirection.right),
-      ArrowTile(row: 0, col: 2, direction: ArrowDirection.down),
-      ArrowTile(row: 1, col: 2, direction: ArrowDirection.down),
-      ArrowTile(row: 2, col: 2, direction: ArrowDirection.left),
-      ArrowTile(row: 2, col: 1, direction: ArrowDirection.left),
-      ArrowTile(row: 2, col: 0, direction: ArrowDirection.down),
-      ArrowTile(row: 4, col: 0, direction: ArrowDirection.right),
-      ArrowTile(row: 4, col: 1, direction: ArrowDirection.right),
-      ArrowTile(row: 4, col: 3, direction: ArrowDirection.up),
-      ArrowTile(row: 3, col: 3, direction: ArrowDirection.up),
-
-      // Important: this arrow points right instead of down.
-      // This removes the previous ↓ ↔ ↑ deadlock.
-      ArrowTile(row: 1, col: 4, direction: ArrowDirection.right),
-
-      ArrowTile(row: 3, col: 4, direction: ArrowDirection.up),
-    ];
+    final level = _buildLevel(widget.level);
 
     // Never allow an unsolvable level to enter the game.
     if (!_isLevelSolvable(level)) {
-      throw StateError('Level 1 is not solvable.');
+      throw StateError('Level ${widget.level} is not solvable.');
     }
 
     arrows = level;
     moves = 0;
+  }
+
+  List<ArrowTile> _buildLevel(int levelNumber) {
+    // Level 1 — original tested puzzle.
+    if (levelNumber == 1) {
+      return [
+        ArrowTile(row: 0, col: 0, direction: ArrowDirection.right),
+        ArrowTile(row: 0, col: 2, direction: ArrowDirection.down),
+        ArrowTile(row: 1, col: 2, direction: ArrowDirection.down),
+        ArrowTile(row: 2, col: 2, direction: ArrowDirection.left),
+        ArrowTile(row: 2, col: 1, direction: ArrowDirection.left),
+        ArrowTile(row: 2, col: 0, direction: ArrowDirection.down),
+        ArrowTile(row: 4, col: 0, direction: ArrowDirection.right),
+        ArrowTile(row: 4, col: 1, direction: ArrowDirection.right),
+        ArrowTile(row: 4, col: 3, direction: ArrowDirection.up),
+        ArrowTile(row: 3, col: 3, direction: ArrowDirection.up),
+
+        // Important: this arrow points right instead of down.
+        // This removes the previous ↓ ↔ ↑ deadlock.
+        ArrowTile(row: 1, col: 4, direction: ArrowDirection.right),
+
+        ArrowTile(row: 3, col: 4, direction: ArrowDirection.up),
+      ];
+    }
+
+    // Until a dedicated puzzle is added, use Level 1 as a safe fallback.
+    return _buildLevel(1);
   }
 
   List<ArrowTile> _remaining(List<ArrowTile> list) {
@@ -1030,6 +1087,14 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
     });
   }
 
+  Future<void> _saveNextLevel() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentLevel = prefs.getInt('last_level') ?? 1;
+    final nextLevel = currentLevel < 1 ? 2 : currentLevel + 1;
+
+    await prefs.setInt('last_level', nextLevel);
+  }
+
   void _showLevelComplete() {
     showDialog(
       context: context,
@@ -1068,7 +1133,10 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
               child: const Text('REPLAY'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                await _saveNextLevel();
+                if (!mounted) return;
+
                 Navigator.pop(context);
                 Navigator.pop(context);
               },
