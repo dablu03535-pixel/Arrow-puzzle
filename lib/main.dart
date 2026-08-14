@@ -258,7 +258,11 @@ class HomeScreen extends StatelessWidget {
                   children: [
                     _circleButton(
                       icon: Icons.settings_rounded,
-                      onTap: () {},
+                      onTap: () => _showComingSoon(
+                        context,
+                        'Settings',
+                        Icons.settings_rounded,
+                      ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -389,7 +393,11 @@ class HomeScreen extends StatelessWidget {
                   width: double.infinity,
                   height: 58,
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () => _showComingSoon(
+                      context,
+                      'Daily Challenge',
+                      Icons.calendar_month_rounded,
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF30384F),
                       side: const BorderSide(
@@ -420,16 +428,44 @@ class HomeScreen extends StatelessWidget {
 
                 const Spacer(),
 
-                // Bottom menu
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _bottomItem(Icons.grid_view_rounded, 'Levels'),
-                    _bottomItem(Icons.card_giftcard_rounded, 'Rewards'),
-                    _bottomItem(Icons.emoji_events_rounded, 'Stats'),
-                  ],
-                ),
-
+                  // Bottom menu
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _bottomItem(
+                          Icons.grid_view_rounded,
+                          'Levels',
+                          onTap: () => _showComingSoon(
+                            context,
+                            'Levels',
+                            Icons.grid_view_rounded,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: _bottomItem(
+                          Icons.card_giftcard_rounded,
+                          'Rewards',
+                          onTap: () => _showComingSoon(
+                            context,
+                            'Rewards',
+                            Icons.card_giftcard_rounded,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: _bottomItem(
+                          Icons.emoji_events_rounded,
+                          'Stats',
+                          onTap: () => _showComingSoon(
+                            context,
+                            'Stats',
+                            Icons.emoji_events_rounded,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 18),
               ],
             ),
@@ -462,24 +498,45 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  static Widget _bottomItem(IconData icon, String label) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          size: 25,
-          color: const Color(0xFF5B6CFF),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF5A6175),
+  static Widget _bottomItem(
+    IconData icon,
+    String label, {
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: SizedBox(
+          width: double.infinity,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 7,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 25,
+                  color: const Color(0xFF5B6CFF),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF5A6175),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
