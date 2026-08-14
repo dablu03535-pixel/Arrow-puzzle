@@ -1359,7 +1359,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
                                         curve: Curves.easeOut,
                                         transform: arrow.blocked
                                             ? (Matrix4.identity()
-                                              ..translate(5.0, 0.0))
+                                              ..translateByDouble(5.0, 0.0, 0.0, 1.0))
                                             : Matrix4.identity(),
                                         decoration: BoxDecoration(
                                           color: arrow.moving
