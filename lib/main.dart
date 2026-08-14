@@ -466,7 +466,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               SizedBox(width: 8),
                               Text(
                                 'LEVEL $_lastLevel',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFF9CA5C0),
                                   fontWeight: FontWeight.w600,
