@@ -1126,11 +1126,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  static Widget _topPill({
-    required IconData icon,
-    required String value,
-    required Color iconColor,
-  }) {
+) {
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 11,
@@ -1164,13 +1160,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  static Widget _largeMenuButton({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color iconColor,
-    required VoidCallback onTap,
-  }) {
+) {
     return Material(
       color: const Color(0xFF111A32),
       borderRadius: BorderRadius.circular(17),
@@ -1228,12 +1218,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  static Widget _smallMenuButton({
-    required IconData icon,
-    required String title,
-    required Color iconColor,
-    required VoidCallback onTap,
-  }) {
+) {
     return Material(
       color: const Color(0xFF111A32),
       borderRadius: BorderRadius.circular(17),
@@ -1272,10 +1257,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  static Widget _circleButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
+) {
     return Material(
       color: const Color(0xFF151F3A),
       elevation: 2,
@@ -1295,12 +1277,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  static Widget _bottomItem(
-    IconData icon,
-    String label, {
-    required VoidCallback onTap,
-    bool active = false,
-  }) {
+) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
