@@ -247,17 +247,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _saveLastLevel(int level) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('last_level', level);
-
-    if (!mounted) return;
-
-    setState(() {
-      _lastLevel = level;
-    });
-  }
-
   Future<void> _startGame(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -267,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.remove('arrow_progress_moves');
     await prefs.setBool('arrow_progress_exists', false);
 
-    if (!mounted) return;
+    if (!context.mounted) return;
 
     Navigator.push(
       context,
@@ -1281,11 +1270,13 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () async {
+            final navigator = Navigator.of(context);
+
             await _saveProgress();
 
             if (!mounted) return;
 
-            Navigator.pop(context);
+            navigator.pop();
           },
         ),
         title: const Text(
