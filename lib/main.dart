@@ -1144,10 +1144,11 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
               },
               child: const Text('HOME'),
             ),
+          ],
+        );
       },
     );
   }
-
   IconData _arrowIcon(ArrowDirection direction) {
     switch (direction) {
       case ArrowDirection.up:
