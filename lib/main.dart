@@ -498,6 +498,44 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  static void _showComingSoon(
+    BuildContext context,
+    String title,
+    IconData icon,
+  ) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                icon,
+                color: const Color(0xFF5B6CFF),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(title),
+              ),
+            ],
+          ),
+          content: const Text(
+            'This feature is coming soon.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   static Widget _bottomItem(
     IconData icon,
     String label, {
