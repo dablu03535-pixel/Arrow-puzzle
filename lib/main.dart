@@ -281,6 +281,368 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+
+  Widget _homeIconButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: const Color(0xFF17213F),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(
+            icon,
+            color: const Color(0xFFD9DEEF),
+            size: 22,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _resourceChip({
+    required IconData icon,
+    required Color iconColor,
+    required String value,
+    String? label,
+    bool showPlus = false,
+  }) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF17213F),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0x225B6CFF),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: iconColor, size: 21),
+          const SizedBox(width: 6),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              if (label != null)
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Color(0xFF8F9ABC),
+                    fontSize: 7,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+            ],
+          ),
+          if (showPlus) ...[
+            const SizedBox(width: 6),
+            Container(
+              width: 19,
+              height: 19,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4ACB5A),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Icon(
+                Icons.add_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _miniArrowTile(
+    IconData icon,
+    Color color,
+    double rotation,
+  ) {
+    return Transform.rotate(
+      angle: rotation,
+      child: Container(
+        width: 45,
+        height: 45,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.20),
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(
+            color: color.withValues(alpha: 0.45),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.18),
+              blurRadius: 18,
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          color: color,
+          size: 27,
+        ),
+      ),
+    );
+  }
+
+  Widget _homeWideButton({
+    required IconData icon,
+    required Color iconColor,
+    required Color background,
+    required String title,
+    required String subtitle,
+    String? badge,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          height: 67,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: const Color(0x334C5D91),
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x22000000),
+                blurRadius: 12,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 43,
+                height: 43,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(
+                  icon,
+                  color: iconColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: Color(0xFFB9C2D9),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (badge != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE94B61),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    badge,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                )
+              else
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Color(0xFFAAB4D2),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _homeSmallTile({
+    required IconData icon,
+    required String title,
+    required Color background,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(17),
+        child: Container(
+          height: 82,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 9,
+          ),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(
+              color: const Color(0x334C5D91),
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: iconColor,
+                size: 27,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _featureItem(
+    IconData icon,
+    String title,
+    String subtitle,
+  ) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: const Color(0xFF8D9CFF),
+            size: 20,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 8,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF7F8AA7),
+              fontSize: 7,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _bottomNavItem(
+    IconData icon,
+    String label,
+    bool selected,
+    VoidCallback? onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: selected
+                  ? const Color(0xFFFFC83D)
+                  : const Color(0xFF7F89A5),
+              size: 21,
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected
+                    ? const Color(0xFFFFC83D)
+                    : const Color(0xFF7F89A5),
+                fontSize: 7,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 2),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: selected ? 18 : 0,
+              height: 2,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFC83D),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -291,8 +653,9 @@ class _HomeScreenState extends State<HomeScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF101A3A),
-              Color(0xFF080D1D),
+              Color(0xFF141B43),
+              Color(0xFF0B1028),
+              Color(0xFF070B18),
             ],
           ),
         ),
@@ -302,116 +665,151 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
                   child: Column(
                     children: [
-                      // TOP BAR
+                      // =====================================================
+                      // TOP RESOURCE BAR
+                      // =====================================================
                       Row(
                         children: [
-                          _circleButton(
+                          _homeIconButton(
                             icon: Icons.settings_rounded,
                             onTap: () => _showComingSoon(
                               context,
                               'Settings',
-                              Icons.settings_rounded,
                             ),
                           ),
                           const Spacer(),
-                          _topPill(
+
+                          _resourceChip(
                             icon: Icons.favorite_rounded,
+                            iconColor: const Color(0xFFFF536D),
                             value: '5',
-                            iconColor: const Color(0xFFFF4F64),
+                            label: 'FULL',
                           ),
                           const SizedBox(width: 8),
-                          _topPill(
+
+                          _resourceChip(
                             icon: Icons.monetization_on_rounded,
+                            iconColor: const Color(0xFFFFC83D),
                             value: '1250',
-                            iconColor: const Color(0xFFFFC928),
+                            showPlus: true,
                           ),
                         ],
                       ),
 
-                      const SizedBox(height: 34),
-
-                      // LOGO
-                      const Text(
-                        'ARROW',
-                        style: TextStyle(
-                          fontSize: 45,
-                          height: 0.95,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2,
-                          color: Colors.white,
-                          shadows: [
-                            Shadow(
-                              color: Color(0x665B6CFF),
-                              blurRadius: 18,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Text(
-                        'PUZZLE',
-                        style: TextStyle(
-                          fontSize: 45,
-                          height: 1,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 4,
-                          color: Color(0xFF6C7CFF),
-                          shadows: [
-                            Shadow(
-                              color: Color(0x665B6CFF),
-                              blurRadius: 18,
-                            ),
-                          ],
-                        ),
-                      ),
-
                       const SizedBox(height: 22),
 
-                      // ARROW ICON
-                      Container(
-                        width: 108,
-                        height: 108,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF111A35),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(
-                            color: const Color(0x335B6CFF),
-                            width: 1.2,
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x445B6CFF),
-                              blurRadius: 30,
-                              spreadRadius: 2,
+                      // =====================================================
+                      // GAME LOGO / TITLE
+                      // =====================================================
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Positioned(
+                            left: 8,
+                            top: 24,
+                            child: _miniArrowTile(
+                              Icons.arrow_upward_rounded,
+                              const Color(0xFF7A5CFF),
+                              -0.08,
                             ),
-                          ],
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.arrow_upward_rounded,
-                            size: 68,
-                            color: Color(0xFF6878FF),
                           ),
-                        ),
+                          Positioned(
+                            right: 8,
+                            top: 48,
+                            child: _miniArrowTile(
+                              Icons.arrow_forward_rounded,
+                              const Color(0xFF4C8DFF),
+                              0.08,
+                            ),
+                          ),
+                          Column(
+                            children: [
+                              const Text(
+                                'ARROW',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 43,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 2.5,
+                                  height: 0.95,
+                                  shadows: [
+                                    Shadow(
+                                      color: Color(0x885B6CFF),
+                                      blurRadius: 18,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              const Text(
+                                'PUZZLE',
+                                style: TextStyle(
+                                  color: Color(0xFFFFC83D),
+                                  fontSize: 38,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.5,
+                                  height: 0.95,
+                                  shadows: [
+                                    Shadow(
+                                      color: Color(0x997A4B00),
+                                      blurRadius: 10,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 9),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 18,
+                                    height: 2,
+                                    color: const Color(0x66FFFFFF),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'TAP  •  CLEAR  •  RELAX',
+                                    style: TextStyle(
+                                      color: Color(0xFFB8C0D9),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    width: 18,
+                                    height: 2,
+                                    color: const Color(0x66FFFFFF),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
 
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 25),
 
+                      // =====================================================
                       // PLAY
+                      // =====================================================
                       SizedBox(
                         width: double.infinity,
-                        height: 62,
+                        height: 64,
                         child: ElevatedButton(
                           onPressed: () => _startGame(context),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF58C72D),
+                            backgroundColor: const Color(0xFF55C92C),
                             foregroundColor: Colors.white,
-                            elevation: 10,
-                            shadowColor: const Color(0x6658C72D),
+                            elevation: 12,
+                            shadowColor: const Color(0x6655C92C),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
+                              borderRadius: BorderRadius.circular(19),
                             ),
                           ),
                           child: const Row(
@@ -419,15 +817,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Icon(
                                 Icons.play_arrow_rounded,
-                                size: 31,
+                                size: 34,
                               ),
-                              SizedBox(width: 7),
+                              SizedBox(width: 8),
                               Text(
                                 'PLAY',
                                 style: TextStyle(
-                                  fontSize: 21,
+                                  fontSize: 22,
                                   fontWeight: FontWeight.w900,
-                                  letterSpacing: 1,
+                                  letterSpacing: 1.5,
                                 ),
                               ),
                             ],
@@ -435,191 +833,276 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 11),
 
+                      // =====================================================
                       // CONTINUE
+                      // =====================================================
                       SizedBox(
                         width: double.infinity,
-                        height: 56,
+                        height: 60,
                         child: OutlinedButton(
                           onPressed: () => _continueGame(context),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
-                            backgroundColor: const Color(0xFF151F3D),
+                            backgroundColor: const Color(0xFF18244A),
                             side: const BorderSide(
                               color: Color(0x665B6CFF),
-                              width: 1.3,
+                              width: 1.4,
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(17),
+                              borderRadius: BorderRadius.circular(18),
                             ),
                           ),
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                Icons.play_circle_outline_rounded,
-                                size: 25,
-                                color: Color(0xFF7D8BFF),
-                              ),
-                              SizedBox(width: 9),
-                              Text(
-                                'CONTINUE',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.7,
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF5265E8),
+                                  borderRadius: BorderRadius.circular(13),
+                                ),
+                                child: const Icon(
+                                  Icons.play_arrow_rounded,
+                                  size: 27,
                                 ),
                               ),
-                              SizedBox(width: 8),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'CONTINUE',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 0.8,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'RESUME YOUR PUZZLE',
+                                      style: TextStyle(
+                                        color: Color(0xFF8F9ABC),
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.8,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                               Text(
                                 'LEVEL $_lastLevel',
                                 style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF9CA5C0),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // DAILY CHALLENGE
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: OutlinedButton(
-                          onPressed: () => _showComingSoon(
-                            context,
-                            'Daily Challenge',
-                            Icons.calendar_month_rounded,
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            backgroundColor: const Color(0xFF171A45),
-                            side: const BorderSide(
-                              color: Color(0x665B6CFF),
-                              width: 1.3,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(17),
-                            ),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.calendar_month_rounded,
-                                color: Color(0xFF9B6CFF),
-                              ),
-                              SizedBox(width: 9),
-                              Text(
-                                'DAILY CHALLENGE',
-                                style: TextStyle(
-                                  fontSize: 15,
+                                  color: Color(0xFFFFC83D),
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
+                              const SizedBox(width: 7),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                color: Color(0xFF8E9AFF),
+                              ),
                             ],
                           ),
                         ),
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 17),
 
-                      // LEVELS
-                      _largeMenuButton(
-                        icon: Icons.grid_view_rounded,
-                        title: 'LEVELS',
-                        subtitle: 'Choose your next puzzle',
-                        iconColor: const Color(0xFF5B8CFF),
+                      // =====================================================
+                      // DAILY CHALLENGE
+                      // =====================================================
+                      _homeWideButton(
+                        icon: Icons.calendar_month_rounded,
+                        iconColor: const Color(0xFFE2A7FF),
+                        background: const Color(0xFF4A286F),
+                        title: 'DAILY CHALLENGE',
+                        subtitle: 'New puzzle every day • Win rewards',
+                        badge: 'NEW',
                         onTap: () => _showComingSoon(
                           context,
-                          'Levels',
-                          Icons.grid_view_rounded,
+                          'Daily Challenge',
                         ),
                       ),
 
                       const SizedBox(height: 10),
 
-                      // SHOP + REWARDS
+                      // =====================================================
+                      // LEVELS
+                      // =====================================================
+                      _homeWideButton(
+                        icon: Icons.grid_view_rounded,
+                        iconColor: const Color(0xFF7FD5FF),
+                        background: const Color(0xFF183E67),
+                        title: 'LEVELS',
+                        subtitle: 'Explore puzzles and track your progress',
+                        onTap: () => _showComingSoon(
+                          context,
+                          'Levels',
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // =====================================================
+                      // SHOP / REWARDS / STATS
+                      // =====================================================
                       Row(
                         children: [
                           Expanded(
-                            child: _smallMenuButton(
+                            child: _homeSmallTile(
                               icon: Icons.storefront_rounded,
                               title: 'SHOP',
-                              iconColor: const Color(0xFFFFC928),
+                              background: const Color(0xFF70451F),
+                              iconColor: const Color(0xFFFFC55A),
                               onTap: () => _showComingSoon(
                                 context,
                                 'Shop',
-                                Icons.storefront_rounded,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 9),
                           Expanded(
-                            child: _smallMenuButton(
+                            child: _homeSmallTile(
                               icon: Icons.card_giftcard_rounded,
                               title: 'REWARDS',
-                              iconColor: const Color(0xFFFF6D9B),
+                              background: const Color(0xFF4C3474),
+                              iconColor: const Color(0xFFFFC85A),
                               onTap: () => _showComingSoon(
                                 context,
                                 'Rewards',
-                                Icons.card_giftcard_rounded,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 9),
+                          Expanded(
+                            child: _homeSmallTile(
+                              icon: Icons.bar_chart_rounded,
+                              title: 'STATS',
+                              background: const Color(0xFF195A58),
+                              iconColor: const Color(0xFF68E5D8),
+                              onTap: () => _showComingSoon(
+                                context,
+                                'Stats',
                               ),
                             ),
                           ),
                         ],
+                      ),
+
+                      const SizedBox(height: 17),
+
+                      // =====================================================
+                      // FEATURE STRIP
+                      // =====================================================
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 13,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0x99121B38),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: const Color(0x225B6CFF),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            _featureItem(
+                              Icons.flash_on_rounded,
+                              'Simple',
+                              'Tap to play',
+                            ),
+                            _featureItem(
+                              Icons.psychology_rounded,
+                              'Challenging',
+                              'Brain puzzle',
+                            ),
+                            _featureItem(
+                              Icons.lightbulb_rounded,
+                              'Hints',
+                              'Need help?',
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
 
+              // ===========================================================
               // BOTTOM NAVIGATION
+              // ===========================================================
               Container(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                padding: const EdgeInsets.fromLTRB(10, 9, 10, 8),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF0D1429),
+                  color: Color(0xFF0B1127),
                   border: Border(
                     top: BorderSide(
-                      color: Color(0x221FFFFF),
+                      color: Color(0x223D4A7A),
                     ),
                   ),
                 ),
                 child: Row(
                   children: [
                     Expanded(
-                      child: _bottomItem(
+                      child: _bottomNavItem(
                         Icons.home_rounded,
                         'HOME',
-                        onTap: () {},
-                        active: true,
+                        true,
+                        null,
                       ),
                     ),
                     Expanded(
-                      child: _bottomItem(
+                      child: _bottomNavItem(
                         Icons.emoji_events_rounded,
                         'TROPHIES',
-                        onTap: () => _showComingSoon(
+                        false,
+                        () => _showComingSoon(
                           context,
                           'Trophies',
-                          Icons.emoji_events_rounded,
                         ),
                       ),
                     ),
                     Expanded(
-                      child: _bottomItem(
-                        Icons.bar_chart_rounded,
-                        'STATS',
-                        onTap: () => _showComingSoon(
+                      child: _bottomNavItem(
+                        Icons.card_giftcard_rounded,
+                        'REWARDS',
+                        false,
+                        () => _showComingSoon(
                           context,
-                          'Stats',
-                          Icons.bar_chart_rounded,
+                          'Rewards',
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: _bottomNavItem(
+                        Icons.storefront_rounded,
+                        'SHOP',
+                        false,
+                        () => _showComingSoon(
+                          context,
+                          'Shop',
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: _bottomNavItem(
+                        Icons.settings_rounded,
+                        'SETTINGS',
+                        false,
+                        () => _showComingSoon(
+                          context,
+                          'Settings',
                         ),
                       ),
                     ),
