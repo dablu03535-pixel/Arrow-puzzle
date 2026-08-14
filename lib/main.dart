@@ -446,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               borderRadius: BorderRadius.circular(17),
                             ),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
@@ -1134,16 +1134,16 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
+                final navigator = Navigator.of(context);
+
                 await _saveNextLevel();
                 if (!mounted) return;
 
-                Navigator.pop(context);
-                Navigator.pop(context);
+                navigator.pop();
+                navigator.pop();
               },
               child: const Text('HOME'),
             ),
-          ],
-        );
       },
     );
   }
@@ -1177,45 +1177,6 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
         arrow.row * (cellSize + cellGap);
   }
 
-  Offset _exitOffset(
-    ArrowTile arrow,
-    double cellSize,
-    double boardSize,
-  ) {
-    final left = boardPadding +
-        arrow.col * (cellSize + cellGap);
-
-    final top = boardPadding +
-        arrow.row * (cellSize + cellGap);
-
-    // Move exactly from the arrow's current cell
-    // until the complete arrow crosses the 5x5 board boundary.
-    switch (arrow.direction) {
-      case ArrowDirection.up:
-        return Offset(
-          0,
-          -(top + cellSize) * arrow.exitProgress,
-        );
-
-      case ArrowDirection.down:
-        return Offset(
-          0,
-          (boardSize - top) * arrow.exitProgress,
-        );
-
-      case ArrowDirection.left:
-        return Offset(
-          -(left + cellSize) * arrow.exitProgress,
-          0,
-        );
-
-      case ArrowDirection.right:
-        return Offset(
-          (boardSize - left) * arrow.exitProgress,
-          0,
-        );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
