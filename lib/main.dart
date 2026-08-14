@@ -358,7 +358,14 @@ class HomeScreen extends StatelessWidget {
                   width: double.infinity,
                   height: 62,
                   child: ElevatedButton(
-                    onPressed: () => _startGame(context),
+                    onPressed: () async {
+                        await Future.delayed(
+                          const Duration(milliseconds: 120),
+                        );
+                        if (context.mounted) {
+                          _startGame(context);
+                        }
+                      },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5B6CFF),
                       foregroundColor: Colors.white,
