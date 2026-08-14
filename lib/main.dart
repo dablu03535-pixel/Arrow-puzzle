@@ -258,19 +258,38 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _startGame(BuildContext context) {
-    _saveLastLevel(_lastLevel);
+  Future<void> _startGame(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // PLAY always starts a completely fresh board.
+    await prefs.remove('arrow_progress_level');
+    await prefs.remove('arrow_progress_removed');
+    await prefs.remove('arrow_progress_moves');
+    await prefs.setBool('arrow_progress_exists', false);
+
+    if (!mounted) return;
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => GamePlaceholderScreen(level: _lastLevel),
+        builder: (_) => GamePlaceholderScreen(
+          level: _lastLevel,
+          resume: false,
+        ),
       ),
     );
   }
 
   void _continueGame(BuildContext context) {
-    _startGame(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GamePlaceholderScreen(
+          level: _lastLevel,
+          resume: true,
+        ),
+      ),
+    );
   }
 
   @override
@@ -878,9 +897,11 @@ class GamePlaceholderScreen extends StatefulWidget {
   const GamePlaceholderScreen({
     super.key,
     this.level = 1,
+    this.resume = false,
   });
 
   final int level;
+  final bool resume;
 
   @override
   State<GamePlaceholderScreen> createState() => _GamePlaceholderScreenState();
@@ -920,6 +941,10 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
   void initState() {
     super.initState();
     _createLevel();
+
+    if (widget.resume) {
+      _restoreProgress();
+    }
   }
 
   void _createLevel() {
@@ -1027,6 +1052,64 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
     return true;
   }
 
+  Future<void> _saveProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final removedIndexes = <String>[];
+
+    for (int i = 0; i < arrows.length; i++) {
+      if (!arrows[i].visible) {
+        removedIndexes.add(i.toString());
+      }
+    }
+
+    await prefs.setInt('arrow_progress_level', widget.level);
+    await prefs.setStringList(
+      'arrow_progress_removed',
+      removedIndexes,
+    );
+    await prefs.setInt('arrow_progress_moves', moves);
+    await prefs.setBool('arrow_progress_exists', true);
+  }
+
+  Future<void> _restoreProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final hasProgress =
+        prefs.getBool('arrow_progress_exists') ?? false;
+
+    if (!hasProgress) return;
+
+    final savedLevel =
+        prefs.getInt('arrow_progress_level') ?? widget.level;
+
+    if (savedLevel != widget.level) return;
+
+    final removedIndexes =
+        prefs.getStringList('arrow_progress_removed') ?? <String>[];
+
+    final savedMoves =
+        prefs.getInt('arrow_progress_moves') ?? 0;
+
+    if (!mounted) return;
+
+    setState(() {
+      for (final value in removedIndexes) {
+        final index = int.tryParse(value);
+
+        if (index != null &&
+            index >= 0 &&
+            index < arrows.length) {
+          arrows[index].visible = false;
+          arrows[index].moving = false;
+          arrows[index].exitProgress = 1.0;
+        }
+      }
+
+      moves = savedMoves;
+    });
+  }
+
   Future<void> _tapArrow(ArrowTile arrow) async {
     if (!arrow.visible || arrow.moving) {
       return;
@@ -1059,6 +1142,9 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
       moves++;
     });
 
+    // Save immediately so progress survives leaving the game.
+    await _saveProgress();
+
     // IMPORTANT:
     // There is no global input lock.
     // Other arrows can be tapped immediately.
@@ -1089,10 +1175,16 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
 
   Future<void> _saveNextLevel() async {
     final prefs = await SharedPreferences.getInstance();
-    final currentLevel = prefs.getInt('last_level') ?? 1;
-    final nextLevel = currentLevel < 1 ? 2 : currentLevel + 1;
+
+    final nextLevel = widget.level < 1 ? 2 : widget.level + 1;
 
     await prefs.setInt('last_level', nextLevel);
+
+    // Completed level no longer needs resume data.
+    await prefs.remove('arrow_progress_level');
+    await prefs.remove('arrow_progress_removed');
+    await prefs.remove('arrow_progress_moves');
+    await prefs.setBool('arrow_progress_exists', false);
   }
 
   void _showLevelComplete() {
@@ -1188,7 +1280,13 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () async {
+            await _saveProgress();
+
+            if (!mounted) return;
+
+            Navigator.pop(context);
+          },
         ),
         title: const Text(
           'LEVEL 1',
