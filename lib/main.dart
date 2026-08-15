@@ -107,14 +107,6 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
-  void _setPlayPressed(bool pressed) {
-    if (_playPressed == pressed) return;
-
-    setState(() {
-      _playPressed = pressed;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -327,6 +319,14 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ),
     );
+  }
+
+  void _setPlayPressed(bool pressed) {
+    if (_playPressed == pressed) return;
+
+    setState(() {
+      _playPressed = pressed;
+    });
   }
 
   @override
