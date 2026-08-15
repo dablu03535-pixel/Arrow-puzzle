@@ -230,6 +230,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _lastLevel = 1;
 
+  // Step 4C: Home Screen resources.
+  // Gameplay/shop logic will be connected in later steps.
+  int _lives = 5;
+  int _coins = 1250;
+
   @override
   void initState() {
     super.initState();
@@ -319,13 +324,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           const Spacer(),
                           _topPill(
                             icon: Icons.favorite_rounded,
-                            value: '5',
+                            value: '$_lives',
                             iconColor: const Color(0xFFFF4F64),
                           ),
                           const SizedBox(width: 8),
                           _topPill(
                             icon: Icons.monetization_on_rounded,
-                            value: '1250',
+                            value: _coins.toString(),
                             iconColor: const Color(0xFFFFC928),
                           ),
                         ],
