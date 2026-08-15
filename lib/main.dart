@@ -107,6 +107,14 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
+  void _setPlayPressed(bool pressed) {
+    if (_playPressed == pressed) return;
+
+    setState(() {
+      _playPressed = pressed;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -227,7 +235,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   int _lastLevel = 1;
 
   // Step 4C: Home Screen resources.
@@ -235,10 +244,44 @@ class _HomeScreenState extends State<HomeScreen> {
   final int _lives = 5;
   final int _coins = 1250;
 
+  // Step 4E: Home entrance + PLAY interaction animation.
+  late final AnimationController _homeAnimationController;
+  late final Animation<double> _homeFadeAnimation;
+  late final Animation<Offset> _homeSlideAnimation;
+  bool _playPressed = false;
+
   @override
   void initState() {
     super.initState();
+
+    _homeAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 750),
+    );
+
+    _homeFadeAnimation = CurvedAnimation(
+      parent: _homeAnimationController,
+      curve: Curves.easeOutCubic,
+    );
+
+    _homeSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.035),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _homeAnimationController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    _homeAnimationController.forward();
     _loadLastLevel();
+  }
+
+  @override
+  void dispose() {
+    _homeAnimationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadLastLevel() async {
@@ -302,8 +345,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
+          child: FadeTransition(
+            opacity: _homeFadeAnimation,
+            child: SlideTransition(
+              position: _homeSlideAnimation,
+              child: Column(
+                children: [
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
@@ -405,12 +452,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 28),
 
                       // PLAY
-                      SizedBox(
-                        width: double.infinity,
-                        height: 62,
-                        child: ElevatedButton(
-                          onPressed: () => _startGame(context),
-                          style: ElevatedButton.styleFrom(
+                      GestureDetector(
+                        onTapDown: (_) => _setPlayPressed(true),
+                        onTapUp: (_) => _setPlayPressed(false),
+                        onTapCancel: () => _setPlayPressed(false),
+                        child: AnimatedScale(
+                          scale: _playPressed ? 0.965 : 1.0,
+                          duration: const Duration(milliseconds: 90),
+                          curve: Curves.easeOut,
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 62,
+                            child: ElevatedButton(
+                              onPressed: () => _startGame(context),
+                              style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF58C72D),
                             foregroundColor: Colors.white,
                             elevation: 10,
@@ -419,23 +474,25 @@ class _HomeScreenState extends State<HomeScreen> {
                               borderRadius: BorderRadius.circular(18),
                             ),
                           ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.play_arrow_rounded,
-                                size: 31,
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.play_arrow_rounded,
+                                    size: 31,
+                                  ),
+                                  SizedBox(width: 7),
+                                  Text(
+                                    'PLAY',
+                                    style: TextStyle(
+                                      fontSize: 21,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              SizedBox(width: 7),
-                              Text(
-                                'PLAY',
-                                style: TextStyle(
-                                  fontSize: 21,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
@@ -626,7 +683,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),
