@@ -955,16 +955,566 @@ class _HomeScreenState extends State<HomeScreen>
 // STEP 4D — NAVIGATION SCREENS
 // =========================================================
 
-class LevelsScreen extends StatelessWidget {
+class LevelsScreen extends StatefulWidget {
   const LevelsScreen({super.key});
 
   @override
+  State<LevelsScreen> createState() => _LevelsScreenState();
+}
+
+class _LevelsScreenState extends State<LevelsScreen> {
+  static const int _totalLevels = 16;
+
+  // Step 5D: Difficulty selection foundation.
+  String _selectedDifficulty = 'NORMAL';
+
+  // Step 5A:
+  // First five levels are available for the initial progression UI.
+  // Gameplay-based unlocking will be connected later.
+  // Step 5C: Level progression foundation.
+  // Levels 1-5 are currently available.
+  // Gameplay completion/unlocking will be connected later.
+  int _unlockedLevel = 5;
+
+  final Map<int, int> _stars = {
+    1: 3,
+    2: 3,
+    3: 2,
+    4: 3,
+    5: 2,
+  };
+
+  int get _completedLevels {
+    return _stars.values.where((stars) => stars > 0).length;
+  }
+
+  double get _progress {
+    return _completedLevels / _totalLevels;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const _FeatureScreen(
-      title: 'LEVELS',
-      subtitle: 'Choose your next puzzle',
-      icon: Icons.grid_view_rounded,
-      accent: Color(0xFF5B8CFF),
+    return Scaffold(
+      backgroundColor: const Color(0xFF080D1D),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0D1429),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        titleSpacing: 18,
+        title: const Text(
+          'LEVELS',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
+          ),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 14),
+            child: PopupMenuButton<String>(
+              initialValue: _selectedDifficulty,
+              tooltip: 'Difficulty',
+              color: const Color(0xFF111A35),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              onSelected: _selectDifficulty,
+              itemBuilder: (context) => [
+                _difficultyMenuItem(
+                  'NORMAL',
+                  Icons.grid_view_rounded,
+                  true,
+                ),
+                _difficultyMenuItem(
+                  'HARD',
+                  Icons.local_fire_department_rounded,
+                  false,
+                ),
+                _difficultyMenuItem(
+                  'EXPERT',
+                  Icons.bolt_rounded,
+                  false,
+                ),
+              ],
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF151F3A),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: const Color(0x332F3C62),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _difficultyIcon(_selectedDifficulty),
+                      size: 17,
+                      color: const Color(0xFF5B8CFF),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _selectedDifficulty,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Color(0xFF8D97B0),
+                      size: 17,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF101A3A),
+              Color(0xFF080D1D),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _selectedDifficulty,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            _selectedDifficulty == 'NORMAL'
+                                ? 'Choose your next puzzle'
+                                : 'Difficulty coming soon',
+                            style: TextStyle(
+                              color: Color(0xFF9CA5C0),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF111A35),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: const Color(0x335B6CFF),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            color: Color(0xFF58C72D),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$_completedLevels / $_totalLevels',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+
+              const SizedBox(height: 4),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                child: Row(
+                  children: [
+                    const Text(
+                      'PROGRESS',
+                      style: TextStyle(
+                        color: Color(0xFF7F8CFF),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: LinearProgressIndicator(
+                          value: _progress,
+                          minHeight: 7,
+                          backgroundColor: const Color(0xFF1B2542),
+                          valueColor:
+                              const AlwaysStoppedAnimation<Color>(
+                            Color(0xFF5B8CFF),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      '${(_progress * 100).round()}%',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
+                  physics: const BouncingScrollPhysics(),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 1.18,
+                  ),
+                  itemCount: _totalLevels,
+                  itemBuilder: (context, index) {
+                    final level = index + 1;
+                    final unlocked = _isLevelUnlocked(level);
+                    final stars = _starsForLevel(level);
+
+                    return _levelCard(
+                      context,
+                      level: level,
+                      unlocked: unlocked,
+                      stars: stars,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  PopupMenuItem<String> _difficultyMenuItem(
+    String difficulty,
+    IconData icon,
+    bool available,
+  ) {
+    return PopupMenuItem<String>(
+      value: difficulty,
+      enabled: available,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 19,
+            color: available
+                ? const Color(0xFF5B8CFF)
+                : const Color(0xFF596177),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            difficulty,
+            style: TextStyle(
+              color: available
+                  ? Colors.white
+                  : const Color(0xFF596177),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.6,
+            ),
+          ),
+          const Spacer(),
+          if (!available)
+            const Icon(
+              Icons.lock_rounded,
+              size: 15,
+              color: Color(0xFF596177),
+            ),
+        ],
+      ),
+    );
+  }
+
+  IconData _difficultyIcon(String difficulty) {
+    switch (difficulty) {
+      case 'HARD':
+        return Icons.local_fire_department_rounded;
+      case 'EXPERT':
+        return Icons.bolt_rounded;
+      default:
+        return Icons.grid_view_rounded;
+    }
+  }
+
+  void _selectDifficulty(String difficulty) {
+    if (difficulty != 'NORMAL') {
+      _showDifficultyLocked(difficulty);
+      return;
+    }
+
+    if (_selectedDifficulty == difficulty) {
+      return;
+    }
+
+    setState(() {
+      _selectedDifficulty = difficulty;
+    });
+  }
+
+  void _showDifficultyLocked(String difficulty) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF111A35),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                difficulty == 'HARD'
+                    ? Icons.local_fire_department_rounded
+                    : Icons.bolt_rounded,
+                color: const Color(0xFF7F8CFF),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                difficulty,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'This difficulty will be unlocked in a future update.',
+            style: TextStyle(
+              color: Color(0xFFB5BDD0),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text(
+                'OK',
+                style: TextStyle(
+                  color: Color(0xFF7F8CFF),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  bool _isLevelUnlocked(int level) {
+    return level <= _unlockedLevel;
+  }
+
+  int _starsForLevel(int level) {
+    return _stars[level] ?? 0;
+  }
+
+  String _levelStatus(int level) {
+    if (!_isLevelUnlocked(level)) {
+      return 'LOCKED';
+    }
+
+    final stars = _starsForLevel(level);
+
+    if (stars >= 3) {
+      return 'MASTERED';
+    }
+
+    if (stars > 0) {
+      return 'COMPLETED';
+    }
+
+    return 'READY';
+  }
+
+  Color _levelStatusColor(int level) {
+    if (!_isLevelUnlocked(level)) {
+      return const Color(0xFF596177);
+    }
+
+    final stars = _starsForLevel(level);
+
+    if (stars >= 3) {
+      return const Color(0xFFFFC928);
+    }
+
+    if (stars > 0) {
+      return const Color(0xFF58C72D);
+    }
+
+    return const Color(0xFF7F8CFF);
+  }
+
+  Widget _levelCard(
+    BuildContext context, {
+    required int level,
+    required bool unlocked,
+    required int stars,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: unlocked
+            ? () => _openLevel(context, level)
+            : null,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: unlocked
+                ? const Color(0xFF111A35)
+                : const Color(0xFF0D1328),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: unlocked
+                  ? const Color(0x335B6CFF)
+                  : const Color(0x221F2A48),
+              width: unlocked ? 1.2 : 1,
+            ),
+            boxShadow: unlocked
+                ? const [
+                    BoxShadow(
+                      color: Color(0x225B6CFF),
+                      blurRadius: 18,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                top: 12,
+                right: 12,
+                child: unlocked
+                    ? const Icon(
+                        Icons.play_circle_fill_rounded,
+                        color: Color(0xFF5B8CFF),
+                        size: 20,
+                      )
+                    : const Icon(
+                        Icons.lock_rounded,
+                        color: Color(0xFF4A536C),
+                        size: 20,
+                      ),
+              ),
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$level',
+                      style: TextStyle(
+                        color: unlocked
+                            ? Colors.white
+                            : const Color(0xFF596177),
+                        fontSize: 31,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(
+                        3,
+                        (index) => Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 2),
+                          child: Icon(
+                            Icons.star_rounded,
+                            size: 17,
+                            color: index < stars
+                                ? const Color(0xFFFFC928)
+                                : const Color(0xFF343C55),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      _levelStatus(level),
+                      style: TextStyle(
+                        color: _levelStatusColor(level),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openLevel(BuildContext context, int level) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GamePlaceholderScreen(
+          level: level,
+          resume: false,
+        ),
+      ),
     );
   }
 }
