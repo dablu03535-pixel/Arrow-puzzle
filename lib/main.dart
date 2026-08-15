@@ -232,8 +232,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Step 4C: Home Screen resources.
   // Gameplay/shop logic will be connected in later steps.
-  int _lives = 5;
-  int _coins = 1250;
+  final int _lives = 5;
+  final int _coins = 1250;
 
   @override
   void initState() {
