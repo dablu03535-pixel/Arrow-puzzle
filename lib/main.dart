@@ -541,10 +541,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         title: 'LEVELS',
                         subtitle: 'Choose your next puzzle',
                         iconColor: const Color(0xFF5B8CFF),
-                        onTap: () => _showComingSoon(
+                        onTap: () => _openScreen(
                           context,
-                          'Levels',
-                          Icons.grid_view_rounded,
+                          const LevelsScreen(),
                         ),
                       ),
 
@@ -558,10 +557,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.storefront_rounded,
                               title: 'SHOP',
                               iconColor: const Color(0xFFFFC928),
-                              onTap: () => _showComingSoon(
+                              onTap: () => _openScreen(
                                 context,
-                                'Shop',
-                                Icons.storefront_rounded,
+                                const ShopScreen(),
                               ),
                             ),
                           ),
@@ -571,10 +569,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.card_giftcard_rounded,
                               title: 'REWARDS',
                               iconColor: const Color(0xFFFF6D9B),
-                              onTap: () => _showComingSoon(
+                              onTap: () => _openScreen(
                                 context,
-                                'Rewards',
-                                Icons.card_giftcard_rounded,
+                                const RewardsScreen(),
                               ),
                             ),
                           ),
@@ -610,10 +607,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: _bottomItem(
                         Icons.emoji_events_rounded,
                         'TROPHIES',
-                        onTap: () => _showComingSoon(
+                        onTap: () => _openScreen(
                           context,
-                          'Trophies',
-                          Icons.emoji_events_rounded,
+                          const TrophiesScreen(),
                         ),
                       ),
                     ),
@@ -621,10 +617,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: _bottomItem(
                         Icons.bar_chart_rounded,
                         'STATS',
-                        onTap: () => _showComingSoon(
+                        onTap: () => _openScreen(
                           context,
-                          'Stats',
-                          Icons.bar_chart_rounded,
+                          const StatsScreen(),
                         ),
                       ),
                     ),
@@ -634,6 +629,15 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _openScreen(BuildContext context, Widget screen) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => screen,
       ),
     );
   }
@@ -883,6 +887,213 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         );
       },
+    );
+  }
+}
+
+
+// =========================================================
+// STEP 4D — NAVIGATION SCREENS
+// =========================================================
+
+class LevelsScreen extends StatelessWidget {
+  const LevelsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const _FeatureScreen(
+      title: 'LEVELS',
+      subtitle: 'Choose your next puzzle',
+      icon: Icons.grid_view_rounded,
+      accent: Color(0xFF5B8CFF),
+    );
+  }
+}
+
+class ShopScreen extends StatelessWidget {
+  const ShopScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const _FeatureScreen(
+      title: 'SHOP',
+      subtitle: 'Power-ups and game items',
+      icon: Icons.storefront_rounded,
+      accent: Color(0xFFFFC928),
+    );
+  }
+}
+
+class RewardsScreen extends StatelessWidget {
+  const RewardsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const _FeatureScreen(
+      title: 'REWARDS',
+      subtitle: 'Your rewards and achievements',
+      icon: Icons.card_giftcard_rounded,
+      accent: Color(0xFFFF6D9B),
+    );
+  }
+}
+
+class StatsScreen extends StatelessWidget {
+  const StatsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const _FeatureScreen(
+      title: 'STATS',
+      subtitle: 'Track your puzzle progress',
+      icon: Icons.bar_chart_rounded,
+      accent: Color(0xFF6C7CFF),
+    );
+  }
+}
+
+class TrophiesScreen extends StatelessWidget {
+  const TrophiesScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const _FeatureScreen(
+      title: 'TROPHIES',
+      subtitle: 'Your trophies and achievements',
+      icon: Icons.emoji_events_rounded,
+      accent: Color(0xFFFFC928),
+    );
+  }
+}
+
+class _FeatureScreen extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color accent;
+
+  const _FeatureScreen({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF080D1D),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0D1429),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
+          ),
+        ),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF101A3A),
+              Color(0xFF080D1D),
+            ],
+          ),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 34,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFF111A35),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: Color(0x335B6CFF),
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x335B6CFF),
+                    blurRadius: 28,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 86,
+                    height: 86,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 44,
+                      color: accent,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 25,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    subtitle,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFF9CA5C0),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: Colors.white,
+                        elevation: 6,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                      child: const Text(
+                        'BACK TO HOME',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
