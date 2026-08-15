@@ -974,7 +974,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
   // Step 5C: Level progression foundation.
   // Levels 1-5 are currently available.
   // Gameplay completion/unlocking will be connected later.
-  int _unlockedLevel = 5;
+  final int _unlockedLevel = 5;
 
   final Map<int, int> _stars = {
     1: 3,
@@ -1098,7 +1098,7 @@ class _LevelsScreenState extends State<LevelsScreen> {
                 padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
