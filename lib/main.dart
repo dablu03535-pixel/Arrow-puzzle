@@ -2018,9 +2018,6 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     }
   }
 
-  bool _samePoint(Offset a, Offset b) {
-    return a.dx == b.dx && a.dy == b.dy;
-  }
 
   bool _isBlocked(ArrowPath arrow) {
     final head = arrow.points.last;
