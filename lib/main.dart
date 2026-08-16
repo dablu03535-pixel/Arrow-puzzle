@@ -2076,11 +2076,13 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
                 : Colors.black87,
           ),
           onPressed: () async {
+            final navigator = Navigator.of(context);
+
             await _saveProgress();
 
             if (!mounted) return;
 
-            Navigator.of(context).pop();
+            navigator.pop();
           },
         ),
         title: Text(
