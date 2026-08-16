@@ -1748,7 +1748,6 @@ class ArrowPath {
 class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     with TickerProviderStateMixin {
   static const double boardPadding = 18;
-  static const double pathWidth = 30;
 
   late List<ArrowPath> paths;
 
@@ -2011,14 +2010,12 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
             ),
             ElevatedButton(
               onPressed: () async {
-                final navigator = Navigator.of(dialogContext);
-
                 await _saveNextLevel();
 
                 if (!mounted) return;
 
-                navigator.pop();
-                navigator.pop();
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
               },
               child: const Text('HOME'),
             ),
@@ -2060,33 +2057,6 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
       boardPadding + point.dx * (boardSize - boardPadding * 2),
       boardPadding + point.dy * (boardSize - boardPadding * 2),
     );
-  }
-
-  Offset _exitOffset(
-    ArrowPath path,
-    double boardSize,
-    double progress,
-  ) {
-    final end = _scalePoint(path.points.last, boardSize);
-
-    const extra = 100.0;
-
-    switch (path.direction) {
-      case ArrowPathDirection.up:
-        return Offset(0, -(end.dy + extra) * progress);
-      case ArrowPathDirection.down:
-        return Offset(
-          0,
-          (boardSize - end.dy + extra) * progress,
-        );
-      case ArrowPathDirection.left:
-        return Offset(-(end.dx + extra) * progress, 0);
-      case ArrowPathDirection.right:
-        return Offset(
-          (boardSize - end.dx + extra) * progress,
-          0,
-        );
-    }
   }
 
   @override
@@ -2379,8 +2349,8 @@ class _ArrowBoardPainter extends CustomPainter {
       canvas.drawPath(path, backgroundPaint);
 
       final visiblePaint = Paint()
-        ..color = arrowColor.withOpacity(
-          pathData.moving ? 0.35 : 1,
+        ..color = arrowColor.withValues(
+          alpha: pathData.moving ? 0.35 : 1,
         )
         ..style = PaintingStyle.stroke
         ..strokeWidth = 8
