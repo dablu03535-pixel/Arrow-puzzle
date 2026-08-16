@@ -2348,21 +2348,6 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     );
   }
 
-  IconData _arrowIcon(
-    ArrowDirection direction,
-  ) {
-    switch (direction) {
-      case ArrowDirection.up:
-        return Icons.arrow_upward_rounded;
-      case ArrowDirection.down:
-        return Icons.arrow_downward_rounded;
-      case ArrowDirection.left:
-        return Icons.arrow_back_rounded;
-      case ArrowDirection.right:
-        return Icons.arrow_forward_rounded;
-    }
-  }
-
   Color get _backgroundColor {
     return Theme.of(context).brightness == Brightness.dark
         ? const Color(0xFF080B12)
