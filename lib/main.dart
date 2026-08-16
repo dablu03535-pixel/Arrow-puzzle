@@ -1707,6 +1707,7 @@ class _FeatureScreen extends StatelessWidget {
   }
 }
 
+
 class GamePlaceholderScreen extends StatefulWidget {
   const GamePlaceholderScreen({
     super.key,
@@ -1718,37 +1719,39 @@ class GamePlaceholderScreen extends StatefulWidget {
   final bool resume;
 
   @override
-  State<GamePlaceholderScreen> createState() => _GamePlaceholderScreenState();
+  State<GamePlaceholderScreen> createState() =>
+      _GamePlaceholderScreenState();
 }
 
-enum ArrowDirection { up, down, left, right }
+enum ArrowPathDirection {
+  up,
+  down,
+  left,
+  right,
+}
 
-class ArrowTile {
-  ArrowTile({
-    required this.row,
-    required this.col,
+class ArrowPath {
+  ArrowPath({
+    required this.points,
     required this.direction,
   });
 
-  final int row;
-  final int col;
-  final ArrowDirection direction;
+  final List<Offset> points;
+  final ArrowPathDirection direction;
 
   bool visible = true;
   bool moving = false;
   bool blocked = false;
-
-  // Visual exit animation progress.
-  // 0.0 = inside board, 1.0 = completely outside.
   double exitProgress = 0.0;
 }
 
-class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
-  static const int gridSize = 5;
-  static const double boardPadding = 10;
-  static const double cellGap = 7;
+class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
+    with TickerProviderStateMixin {
+  static const double boardPadding = 18;
+  static const double pathWidth = 30;
 
-  late List<ArrowTile> arrows;
+  late List<ArrowPath> paths;
+
   int moves = 0;
 
   @override
@@ -1762,126 +1765,94 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
   }
 
   void _createLevel() {
-    final level = _buildLevel(widget.level);
-
-    // Never allow an unsolvable level to enter the game.
-    if (!_isLevelSolvable(level)) {
-      throw StateError('Level ${widget.level} is not solvable.');
-    }
-
-    arrows = level;
+    paths = _buildLevel(widget.level);
     moves = 0;
   }
 
-  List<ArrowTile> _buildLevel(int levelNumber) {
-    // Level 1 — original tested puzzle.
-    if (levelNumber == 1) {
-      return [
-        ArrowTile(row: 0, col: 0, direction: ArrowDirection.right),
-        ArrowTile(row: 0, col: 2, direction: ArrowDirection.down),
-        ArrowTile(row: 1, col: 2, direction: ArrowDirection.down),
-        ArrowTile(row: 2, col: 2, direction: ArrowDirection.left),
-        ArrowTile(row: 2, col: 1, direction: ArrowDirection.left),
-        ArrowTile(row: 2, col: 0, direction: ArrowDirection.down),
-        ArrowTile(row: 4, col: 0, direction: ArrowDirection.right),
-        ArrowTile(row: 4, col: 1, direction: ArrowDirection.right),
-        ArrowTile(row: 4, col: 3, direction: ArrowDirection.up),
-        ArrowTile(row: 3, col: 3, direction: ArrowDirection.up),
+  List<ArrowPath> _buildLevel(int level) {
+    final complexity = level.clamp(1, 16);
 
-        // Important: this arrow points right instead of down.
-        // This removes the previous ↓ ↔ ↑ deadlock.
-        ArrowTile(row: 1, col: 4, direction: ArrowDirection.right),
+    final base = <ArrowPath>[
+      ArrowPath(
+        points: const [
+          Offset(0.08, 0.18),
+          Offset(0.38, 0.18),
+          Offset(0.38, 0.42),
+          Offset(0.72, 0.42),
+        ],
+        direction: ArrowPathDirection.right,
+      ),
+      ArrowPath(
+        points: const [
+          Offset(0.82, 0.12),
+          Offset(0.82, 0.68),
+          Offset(0.58, 0.68),
+        ],
+        direction: ArrowPathDirection.left,
+      ),
+      ArrowPath(
+        points: const [
+          Offset(0.18, 0.34),
+          Offset(0.18, 0.78),
+          Offset(0.46, 0.78),
+        ],
+        direction: ArrowPathDirection.right,
+      ),
+      ArrowPath(
+        points: const [
+          Offset(0.62, 0.88),
+          Offset(0.62, 0.55),
+          Offset(0.30, 0.55),
+          Offset(0.30, 0.30),
+        ],
+        direction: ArrowPathDirection.up,
+      ),
+      ArrowPath(
+        points: const [
+          Offset(0.10, 0.62),
+          Offset(0.48, 0.62),
+          Offset(0.48, 0.10),
+        ],
+        direction: ArrowPathDirection.up,
+      ),
+      ArrowPath(
+        points: const [
+          Offset(0.72, 0.28),
+          Offset(0.52, 0.28),
+          Offset(0.52, 0.82),
+        ],
+        direction: ArrowPathDirection.down,
+      ),
+    ];
 
-        ArrowTile(row: 3, col: 4, direction: ArrowDirection.up),
-      ];
+    if (complexity <= 4) {
+      return base.take(3).toList();
     }
 
-    // Until a dedicated puzzle is added, use Level 1 as a safe fallback.
-    return _buildLevel(1);
-  }
-
-  List<ArrowTile> _remaining(List<ArrowTile> list) {
-    return list.where((a) => a.visible).toList();
-  }
-
-  bool _isBlockedBy(
-    ArrowTile arrow,
-    List<ArrowTile> list,
-  ) {
-    for (final other in _remaining(list)) {
-      if (identical(other, arrow)) continue;
-
-      switch (arrow.direction) {
-        case ArrowDirection.up:
-          if (other.col == arrow.col && other.row < arrow.row) {
-            return true;
-          }
-
-        case ArrowDirection.down:
-          if (other.col == arrow.col && other.row > arrow.row) {
-            return true;
-          }
-
-        case ArrowDirection.left:
-          if (other.row == arrow.row && other.col < arrow.col) {
-            return true;
-          }
-
-        case ArrowDirection.right:
-          if (other.row == arrow.row && other.col > arrow.col) {
-            return true;
-          }
-      }
+    if (complexity <= 8) {
+      return base.take(4).toList();
     }
 
-    return false;
-  }
-
-  bool _isLevelSolvable(List<ArrowTile> original) {
-    // Work on positions/directions only. This simulates removing
-    // only arrows that are currently free.
-    final remaining = original
-        .map(
-          (a) => ArrowTile(
-            row: a.row,
-            col: a.col,
-            direction: a.direction,
-          ),
-        )
-        .toList();
-
-    while (remaining.isNotEmpty) {
-      final free = remaining
-          .where((arrow) => !_isBlockedBy(arrow, remaining))
-          .toList();
-
-      if (free.isEmpty) {
-        return false;
-      }
-
-      // Remove all currently free arrows from the simulation.
-      remaining.removeWhere((arrow) => free.contains(arrow));
+    if (complexity <= 12) {
+      return base.take(5).toList();
     }
 
-    return true;
+    return base;
   }
 
   Future<void> _saveProgress() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final removedIndexes = <String>[];
+    final removed = <String>[];
 
-    for (int i = 0; i < arrows.length; i++) {
-      if (!arrows[i].visible) {
-        removedIndexes.add(i.toString());
+    for (int i = 0; i < paths.length; i++) {
+      if (!paths[i].visible) {
+        removed.add(i.toString());
       }
     }
 
     await prefs.setInt('arrow_progress_level', widget.level);
-    await prefs.setStringList(
-      'arrow_progress_removed',
-      removedIndexes,
-    );
+    await prefs.setStringList('arrow_progress_removed', removed);
     await prefs.setInt('arrow_progress_moves', moves);
     await prefs.setBool('arrow_progress_exists', true);
   }
@@ -1889,17 +1860,18 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
   Future<void> _restoreProgress() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final hasProgress =
-        prefs.getBool('arrow_progress_exists') ?? false;
-
-    if (!hasProgress) return;
+    if (!(prefs.getBool('arrow_progress_exists') ?? false)) {
+      return;
+    }
 
     final savedLevel =
         prefs.getInt('arrow_progress_level') ?? widget.level;
 
-    if (savedLevel != widget.level) return;
+    if (savedLevel != widget.level) {
+      return;
+    }
 
-    final removedIndexes =
+    final removed =
         prefs.getStringList('arrow_progress_removed') ?? <String>[];
 
     final savedMoves =
@@ -1908,15 +1880,13 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
     if (!mounted) return;
 
     setState(() {
-      for (final value in removedIndexes) {
+      for (final value in removed) {
         final index = int.tryParse(value);
 
-        if (index != null &&
-            index >= 0 &&
-            index < arrows.length) {
-          arrows[index].visible = false;
-          arrows[index].moving = false;
-          arrows[index].exitProgress = 1.0;
+        if (index != null && index >= 0 && index < paths.length) {
+          paths[index].visible = false;
+          paths[index].moving = false;
+          paths[index].exitProgress = 1.0;
         }
       }
 
@@ -1924,56 +1894,73 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
     });
   }
 
-  Future<void> _tapArrow(ArrowTile arrow) async {
-    if (!arrow.visible || arrow.moving) {
+  bool _pathsOverlap(ArrowPath a, ArrowPath b) {
+    for (final pa in a.points) {
+      for (final pb in b.points) {
+        if ((pa - pb).distance < 0.11) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  bool _isBlocked(ArrowPath target) {
+    for (final other in paths) {
+      if (identical(other, target) || !other.visible || other.moving) {
+        continue;
+      }
+
+      if (_pathsOverlap(target, other)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  Future<void> _tapPath(ArrowPath path) async {
+    if (!path.visible || path.moving) {
       return;
     }
 
-    // The path is checked using the current logical board.
-    // Moving/removed arrows are ignored by _isBlockedBy().
-    if (_isBlockedBy(arrow, arrows)) {
+    if (_isBlocked(path)) {
       setState(() {
-        arrow.blocked = true;
+        path.blocked = true;
       });
 
-      await Future.delayed(const Duration(milliseconds: 160));
+      await Future.delayed(const Duration(milliseconds: 180));
 
       if (!mounted) return;
 
       setState(() {
-        arrow.blocked = false;
+        path.blocked = false;
       });
 
       return;
     }
 
-    // Remove this arrow logically immediately.
-    // Its visual copy remains on screen during the exit animation.
     setState(() {
-      arrow.visible = false;
-      arrow.moving = true;
-      arrow.exitProgress = 0.0;
+      path.visible = false;
+      path.moving = true;
+      path.exitProgress = 0;
       moves++;
     });
 
-    // Save immediately so progress survives leaving the game.
     await _saveProgress();
 
-    // IMPORTANT:
-    // There is no global input lock.
-    // Other arrows can be tapped immediately.
-
-    await Future.delayed(const Duration(milliseconds: 380));
+    await Future.delayed(const Duration(milliseconds: 420));
 
     if (!mounted) return;
 
     setState(() {
-      arrow.moving = false;
-      arrow.exitProgress = 1.0;
+      path.moving = false;
+      path.exitProgress = 1;
     });
 
-    if (arrows.every((a) => !a.visible && !a.moving)) {
-      await Future.delayed(const Duration(milliseconds: 120));
+    if (paths.every((p) => !p.visible && !p.moving)) {
+      await Future.delayed(const Duration(milliseconds: 150));
 
       if (mounted) {
         _showLevelComplete();
@@ -1990,11 +1977,10 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
   Future<void> _saveNextLevel() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final nextLevel = widget.level < 1 ? 2 : widget.level + 1;
+    final nextLevel = widget.level + 1;
 
     await prefs.setInt('last_level', nextLevel);
 
-    // Completed level no longer needs resume data.
     await prefs.remove('arrow_progress_level');
     await prefs.remove('arrow_progress_removed');
     await prefs.remove('arrow_progress_moves');
@@ -2002,47 +1988,33 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
   }
 
   void _showLevelComplete() {
-    showDialog(
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
           title: const Text(
             '🎉 Level Complete!',
             textAlign: TextAlign.center,
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'All arrows cleared!',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Moves: $moves',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          content: Text(
+            'All paths cleared!\n\nMoves: $moves',
+            textAlign: TextAlign.center,
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.of(dialogContext).pop();
                 _resetLevel();
               },
               child: const Text('REPLAY'),
             ),
             ElevatedButton(
               onPressed: () async {
-                final navigator = Navigator.of(context);
+                final navigator = Navigator.of(dialogContext);
 
                 await _saveNextLevel();
+
                 if (!mounted) return;
 
                 navigator.pop();
@@ -2055,59 +2027,99 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
       },
     );
   }
-  IconData _arrowIcon(ArrowDirection direction) {
-    switch (direction) {
-      case ArrowDirection.up:
-        return Icons.arrow_upward_rounded;
-      case ArrowDirection.down:
-        return Icons.arrow_downward_rounded;
-      case ArrowDirection.left:
-        return Icons.arrow_back_rounded;
-      case ArrowDirection.right:
-        return Icons.arrow_forward_rounded;
+
+  Color get _arrowColor {
+    return Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black;
+  }
+
+  Color get _boardColor {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF111827)
+        : const Color(0xFFF7F7F7);
+  }
+
+  Color get _backgroundColor {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF080B12)
+        : const Color(0xFFF3F5FF);
+  }
+
+  Color get _pathBackground {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF202636)
+        : const Color(0xFFE7E9EF);
+  }
+
+  Offset _scalePoint(
+    Offset point,
+    double boardSize,
+  ) {
+    return Offset(
+      boardPadding + point.dx * (boardSize - boardPadding * 2),
+      boardPadding + point.dy * (boardSize - boardPadding * 2),
+    );
+  }
+
+  Offset _exitOffset(
+    ArrowPath path,
+    double boardSize,
+    double progress,
+  ) {
+    final end = _scalePoint(path.points.last, boardSize);
+
+    const extra = 100.0;
+
+    switch (path.direction) {
+      case ArrowPathDirection.up:
+        return Offset(0, -(end.dy + extra) * progress);
+      case ArrowPathDirection.down:
+        return Offset(
+          0,
+          (boardSize - end.dy + extra) * progress,
+        );
+      case ArrowPathDirection.left:
+        return Offset(-(end.dx + extra) * progress, 0);
+      case ArrowPathDirection.right:
+        return Offset(
+          (boardSize - end.dx + extra) * progress,
+          0,
+        );
     }
   }
 
-  double _leftFor(
-    ArrowTile arrow,
-    double cellSize,
-  ) {
-    return boardPadding +
-        arrow.col * (cellSize + cellGap);
-  }
-
-  double _topFor(
-    ArrowTile arrow,
-    double cellSize,
-  ) {
-    return boardPadding +
-        arrow.row * (cellSize + cellGap);
-  }
-
-
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F5FF),
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF3F5FF),
+        backgroundColor: _backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: Icon(
+            Icons.arrow_back_rounded,
+            color: brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black87,
+          ),
           onPressed: () async {
-            final navigator = Navigator.of(context);
-
             await _saveProgress();
 
             if (!mounted) return;
 
-            navigator.pop();
+            Navigator.of(context).pop();
           },
         ),
-        title: const Text(
-          'LEVEL 1',
+        title: Text(
+          'LEVEL ${widget.level}',
           style: TextStyle(
-            fontWeight: FontWeight.w800,
+            color: brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black87,
+            fontWeight: FontWeight.w900,
             letterSpacing: 1,
           ),
         ),
@@ -2116,7 +2128,12 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
           IconButton(
             tooltip: 'Reset',
             onPressed: _resetLevel,
-            icon: const Icon(Icons.refresh_rounded),
+            icon: Icon(
+              Icons.refresh_rounded,
+              color: brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black87,
+            ),
           ),
         ],
       ),
@@ -2135,9 +2152,9 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
                 ),
                 const SizedBox(width: 12),
                 _infoCard(
-                  Icons.keyboard_arrow_up_rounded,
-                  'Arrows',
-                  '${arrows.where((a) => a.visible).length}',
+                  Icons.arrow_forward_rounded,
+                  'Paths',
+                  '${paths.where((p) => p.visible).length}',
                 ),
               ],
             ),
@@ -2145,163 +2162,48 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
             const Spacer(),
 
             Padding(
-              padding: const EdgeInsets.all(22),
+              padding: const EdgeInsets.all(20),
               child: AspectRatio(
                 aspectRatio: 1,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final boardSize = constraints.maxWidth;
-                    final cellSize =
-                        (boardSize -
-                                (boardPadding * 2) -
-                                (cellGap * (gridSize - 1))) /
-                            gridSize;
 
                     return Container(
                       clipBehavior: Clip.none,
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(28),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x18000000),
-                            blurRadius: 25,
-                            offset: Offset(0, 12),
-                          ),
-                        ],
+                        color: _boardColor,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: brightness == Brightness.dark
+                            ? null
+                            : const [
+                                BoxShadow(
+                                  color: Color(0x18000000),
+                                  blurRadius: 25,
+                                  offset: Offset(0, 12),
+                                ),
+                              ],
                       ),
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          // Fixed 5x5 board.
-                          Padding(
-                            padding: const EdgeInsets.all(boardPadding),
-                            child: GridView.builder(
-                              physics:
-                                  const NeverScrollableScrollPhysics(),
-                              itemCount: gridSize * gridSize,
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: gridSize,
-                                crossAxisSpacing: cellGap,
-                                mainAxisSpacing: cellGap,
-                              ),
-                              itemBuilder: (context, index) {
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF5F6FC),
-                                    borderRadius:
-                                        BorderRadius.circular(13),
-                                  ),
-                                );
-                              },
+                          CustomPaint(
+                            size: Size.square(boardSize),
+                            painter: _ArrowBoardPainter(
+                              paths: paths,
+                              arrowColor: _arrowColor,
+                              pathBackground: _pathBackground,
+                              boardSize: boardSize,
+                              scalePoint: _scalePoint,
                             ),
                           ),
 
-                          // Every arrow has a permanently fixed board position.
-                          // ONLY its visual child moves during exit animation.
-                          for (final arrow in arrows)
-                            if (arrow.visible || arrow.moving)
-                              Positioned(
-                                left: _leftFor(arrow, cellSize),
-                                top: _topFor(arrow, cellSize),
-                                width: cellSize,
-                                height: cellSize,
-                                child: TweenAnimationBuilder<double>(
-                                  key: ValueKey(
-                                    '${arrow.visible}-${arrow.moving}-${arrow.exitProgress}',
-                                  ),
-                                  tween: Tween<double>(
-                                    begin: arrow.moving ? 0.0 : 1.0,
-                                    end: arrow.moving ? 1.0 : 1.0,
-                                  ),
-                                  duration:
-                                      const Duration(milliseconds: 380),
-                                  curve: Curves.easeInCubic,
-                                  builder: (context, animationValue, child) {
-                                    final progress = arrow.moving
-                                        ? animationValue
-                                        : arrow.exitProgress;
-
-                                    final left =
-                                        boardPadding +
-                                        arrow.col * (cellSize + cellGap);
-
-                                    final top =
-                                        boardPadding +
-                                        arrow.row * (cellSize + cellGap);
-
-                                    // Move the arrow all the way to the
-                                    // corresponding 5x5 board boundary.
-                                    // Add one extra cell so the complete
-                                    // arrow visibly crosses the edge.
-                                    final distance = switch (arrow.direction) {
-                                      ArrowDirection.up =>
-                                        (top + cellSize) + cellSize * 0.35,
-                                      ArrowDirection.down =>
-                                        (boardSize - top) + cellSize * 0.35,
-                                      ArrowDirection.left =>
-                                        (left + cellSize) + cellSize * 0.35,
-                                      ArrowDirection.right =>
-                                        (boardSize - left) + cellSize * 0.35,
-                                    };
-
-                                    final offset = switch (arrow.direction) {
-                                      ArrowDirection.up =>
-                                        Offset(0, -distance * progress),
-                                      ArrowDirection.down =>
-                                        Offset(0, distance * progress),
-                                      ArrowDirection.left =>
-                                        Offset(-distance * progress, 0),
-                                      ArrowDirection.right =>
-                                        Offset(distance * progress, 0),
-                                    };
-
-                                    return Transform.translate(
-                                      offset: offset,
-                                      child: child,
-                                    );
-                                  },
-                                  child: IgnorePointer(
-                                    ignoring: arrow.moving,
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: () => _tapArrow(arrow),
-                                      child: AnimatedContainer(
-                                        duration:
-                                            const Duration(milliseconds: 100),
-                                        curve: Curves.easeOut,
-                                        transform: arrow.blocked
-                                            ? (Matrix4.identity()
-                                              ..translateByDouble(5.0, 0.0, 0.0, 1.0))
-                                            : Matrix4.identity(),
-                                        decoration: BoxDecoration(
-                                          color: arrow.moving
-                                              ? const Color(0xFFBFC7FF)
-                                              : const Color(0xFF6575FF),
-                                          borderRadius:
-                                              BorderRadius.circular(15),
-                                          boxShadow: const [
-                                            BoxShadow(
-                                              color: Color(0x405B6CFF),
-                                              blurRadius: 8,
-                                              offset: Offset(0, 5),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Center(
-                                          child: Icon(
-                                            _arrowIcon(arrow.direction),
-                                            color: Colors.white,
-                                            size: 31,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                          for (final path in paths)
+                            if (path.visible || path.moving)
+                              _buildPathHitArea(
+                                path,
+                                boardSize,
                               ),
-
                         ],
                       ),
                     );
@@ -2312,15 +2214,17 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
 
             const Spacer(),
 
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 30),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 30),
               child: Text(
-                'Tap an arrow only when its path is clear',
+                'Tap a path when the route is clear',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF697087),
+                  color: brightness == Brightness.dark
+                      ? const Color(0xFF9CA3AF)
+                      : const Color(0xFF697087),
                 ),
               ),
             ),
@@ -2332,46 +2236,86 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
     );
   }
 
+  Widget _buildPathHitArea(
+    ArrowPath path,
+    double boardSize,
+  ) {
+    final points = path.points
+        .map((point) => _scalePoint(point, boardSize))
+        .toList();
+
+    final minX = points.map((p) => p.dx).reduce((a, b) => a < b ? a : b);
+    final maxX = points.map((p) => p.dx).reduce((a, b) => a > b ? a : b);
+    final minY = points.map((p) => p.dy).reduce((a, b) => a < b ? a : b);
+    final maxY = points.map((p) => p.dy).reduce((a, b) => a > b ? a : b);
+
+    final width = (maxX - minX + 54).clamp(54.0, boardSize);
+    final height = (maxY - minY + 54).clamp(54.0, boardSize);
+
+    return Positioned(
+      left: (minX - 27).clamp(0.0, boardSize - width),
+      top: (minY - 27).clamp(0.0, boardSize - height),
+      width: width,
+      height: height,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => _tapPath(path),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 120),
+          opacity: path.blocked ? 0.55 : 1,
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+  }
+
   Widget _infoCard(
     IconData icon,
     String title,
     String value,
   ) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 15,
         vertical: 9,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: dark ? const Color(0xFF151B29) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x12000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
+        boxShadow: dark
+            ? null
+            : const [
+                BoxShadow(
+                  color: Color(0x12000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
       ),
       child: Row(
         children: [
           Icon(
             icon,
             size: 20,
-            color: const Color(0xFF5B6CFF),
+            color: dark ? Colors.white : Colors.black87,
           ),
           const SizedBox(width: 6),
           Text(
             title,
-            style: const TextStyle(
-              color: Color(0xFF777E91),
+            style: TextStyle(
+              color: dark
+                  ? const Color(0xFF9CA3AF)
+                  : const Color(0xFF777E91),
               fontSize: 13,
             ),
           ),
           const SizedBox(width: 7),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
+              color: dark ? Colors.white : Colors.black87,
               fontWeight: FontWeight.w800,
               fontSize: 15,
             ),
@@ -2379,5 +2323,133 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
         ],
       ),
     );
+  }
+}
+
+class _ArrowBoardPainter extends CustomPainter {
+  _ArrowBoardPainter({
+    required this.paths,
+    required this.arrowColor,
+    required this.pathBackground,
+    required this.boardSize,
+    required this.scalePoint,
+  });
+
+  final List<ArrowPath> paths;
+  final Color arrowColor;
+  final Color pathBackground;
+  final double boardSize;
+  final Offset Function(Offset point, double boardSize) scalePoint;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final backgroundPaint = Paint()
+      ..color = pathBackground
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 30
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final arrowPaint = Paint()
+      ..color = arrowColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 8
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    for (final pathData in paths) {
+      if (!pathData.visible && !pathData.moving) {
+        continue;
+      }
+
+      final points = pathData.points
+          .map((point) => scalePoint(point, boardSize))
+          .toList();
+
+      if (points.length < 2) {
+        continue;
+      }
+
+      final path = Path()..moveTo(points.first.dx, points.first.dy);
+
+      for (int i = 1; i < points.length; i++) {
+        path.lineTo(points[i].dx, points[i].dy);
+      }
+
+      canvas.drawPath(path, backgroundPaint);
+
+      final visiblePaint = Paint()
+        ..color = arrowColor.withOpacity(
+          pathData.moving ? 0.35 : 1,
+        )
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 8
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
+
+      canvas.drawPath(path, visiblePaint);
+
+      final end = points.last;
+
+      double dx = 0;
+      double dy = 0;
+
+      if (points.length >= 2) {
+        final previous = points[points.length - 2];
+        dx = end.dx - previous.dx;
+        dy = end.dy - previous.dy;
+      }
+
+      final length = (dx * dx + dy * dy).sqrt();
+
+      if (length == 0) {
+        continue;
+      }
+
+      dx /= length;
+      dy /= length;
+
+      const arrowSize = 20.0;
+
+      final left = Offset(
+        end.dx - dx * arrowSize - dy * arrowSize * 0.65,
+        end.dy - dy * arrowSize + dx * arrowSize * 0.65,
+      );
+
+      final right = Offset(
+        end.dx - dx * arrowSize + dy * arrowSize * 0.65,
+        end.dy - dy * arrowSize - dx * arrowSize * 0.65,
+      );
+
+      final head = Path()
+        ..moveTo(left.dx, left.dy)
+        ..lineTo(end.dx, end.dy)
+        ..lineTo(right.dx, right.dy);
+
+      canvas.drawPath(head, arrowPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ArrowBoardPainter oldDelegate) {
+    return oldDelegate.paths != paths ||
+        oldDelegate.arrowColor != arrowColor ||
+        oldDelegate.pathBackground != pathBackground;
+  }
+}
+
+extension on double {
+  double sqrt() {
+    if (this <= 0) {
+      return 0;
+    }
+
+    double x = this;
+
+    for (int i = 0; i < 12; i++) {
+      x = 0.5 * (x + this / x);
+    }
+
+    return x;
   }
 }
