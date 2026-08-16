@@ -1708,6 +1708,7 @@ class _FeatureScreen extends StatelessWidget {
 }
 
 
+
 class GamePlaceholderScreen extends StatefulWidget {
   const GamePlaceholderScreen({
     super.key,
@@ -1723,39 +1724,40 @@ class GamePlaceholderScreen extends StatefulWidget {
       _GamePlaceholderScreenState();
 }
 
-enum ArrowPathDirection {
+enum ArrowDirection {
   up,
   down,
   left,
   right,
 }
 
-class ArrowPath {
-  ArrowPath({
-    required this.points,
+class ArrowTile {
+  ArrowTile({
+    required this.row,
+    required this.col,
     required this.direction,
   });
 
-  final List<Offset> points;
-  final ArrowPathDirection direction;
+  final int row;
+  final int col;
+  final ArrowDirection direction;
 
   bool visible = true;
   bool moving = false;
   bool blocked = false;
-  double exitProgress = 0.0;
 }
 
-class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
-    with TickerProviderStateMixin {
-  static const double boardPadding = 18;
+class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
+  static const int dotGridSize = 9;
 
-  late List<ArrowPath> paths;
+  late List<ArrowTile> arrows;
 
   int moves = 0;
 
   @override
   void initState() {
     super.initState();
+
     _createLevel();
 
     if (widget.resume) {
@@ -1764,79 +1766,213 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
   }
 
   void _createLevel() {
-    paths = _buildLevel(widget.level);
+    arrows = _buildLevel(widget.level);
     moves = 0;
   }
 
-  List<ArrowPath> _buildLevel(int level) {
-    final complexity = level.clamp(1, 16);
+  ArrowTile _a(int row, int col, ArrowDirection direction) {
+    return ArrowTile(
+      row: row,
+      col: col,
+      direction: direction,
+    );
+  }
 
-    final base = <ArrowPath>[
-      ArrowPath(
-        points: const [
-          Offset(0.08, 0.18),
-          Offset(0.38, 0.18),
-          Offset(0.38, 0.42),
-          Offset(0.72, 0.42),
-        ],
-        direction: ArrowPathDirection.right,
-      ),
-      ArrowPath(
-        points: const [
-          Offset(0.82, 0.12),
-          Offset(0.82, 0.68),
-          Offset(0.58, 0.68),
-        ],
-        direction: ArrowPathDirection.left,
-      ),
-      ArrowPath(
-        points: const [
-          Offset(0.18, 0.34),
-          Offset(0.18, 0.78),
-          Offset(0.46, 0.78),
-        ],
-        direction: ArrowPathDirection.right,
-      ),
-      ArrowPath(
-        points: const [
-          Offset(0.62, 0.88),
-          Offset(0.62, 0.55),
-          Offset(0.30, 0.55),
-          Offset(0.30, 0.30),
-        ],
-        direction: ArrowPathDirection.up,
-      ),
-      ArrowPath(
-        points: const [
-          Offset(0.10, 0.62),
-          Offset(0.48, 0.62),
-          Offset(0.48, 0.10),
-        ],
-        direction: ArrowPathDirection.up,
-      ),
-      ArrowPath(
-        points: const [
-          Offset(0.72, 0.28),
-          Offset(0.52, 0.28),
-          Offset(0.52, 0.82),
-        ],
-        direction: ArrowPathDirection.down,
-      ),
-    ];
+  List<ArrowTile> _buildLevel(int level) {
+    switch (level) {
+      case 1:
+        return [
+          _a(1, 1, ArrowDirection.right),
+          _a(1, 4, ArrowDirection.left),
+          _a(2, 4, ArrowDirection.down),
+          _a(5, 4, ArrowDirection.up),
+          _a(5, 2, ArrowDirection.right),
+          _a(5, 7, ArrowDirection.left),
+          _a(7, 2, ArrowDirection.up),
+          _a(3, 2, ArrowDirection.down),
+          _a(3, 6, ArrowDirection.left),
+          _a(6, 6, ArrowDirection.up),
+          _a(7, 7, ArrowDirection.left),
+          _a(2, 7, ArrowDirection.down),
+        ];
 
-    if (complexity <= 4) {
-      return base.take(3).toList();
+      case 2:
+        return [
+          _a(1, 1, ArrowDirection.right),
+          _a(1, 3, ArrowDirection.right),
+          _a(1, 7, ArrowDirection.left),
+          _a(3, 2, ArrowDirection.down),
+          _a(6, 2, ArrowDirection.up),
+          _a(3, 5, ArrowDirection.down),
+          _a(7, 5, ArrowDirection.up),
+          _a(5, 7, ArrowDirection.left),
+          _a(5, 4, ArrowDirection.right),
+        ];
+
+      case 3:
+        return [
+          _a(1, 1, ArrowDirection.down),
+          _a(4, 1, ArrowDirection.up),
+          _a(2, 3, ArrowDirection.right),
+          _a(2, 7, ArrowDirection.left),
+          _a(5, 3, ArrowDirection.down),
+          _a(7, 3, ArrowDirection.up),
+          _a(5, 6, ArrowDirection.right),
+          _a(5, 8, ArrowDirection.left),
+          _a(7, 7, ArrowDirection.up),
+        ];
+
+      case 4:
+        return [
+          _a(1, 1, ArrowDirection.right),
+          _a(1, 5, ArrowDirection.left),
+          _a(2, 2, ArrowDirection.down),
+          _a(5, 2, ArrowDirection.up),
+          _a(2, 6, ArrowDirection.down),
+          _a(7, 6, ArrowDirection.up),
+          _a(4, 3, ArrowDirection.right),
+          _a(4, 7, ArrowDirection.left),
+          _a(6, 1, ArrowDirection.right),
+          _a(6, 5, ArrowDirection.left),
+        ];
+
+      case 5:
+        return [
+          _a(1, 1, ArrowDirection.down),
+          _a(4, 1, ArrowDirection.up),
+          _a(1, 4, ArrowDirection.right),
+          _a(1, 7, ArrowDirection.left),
+          _a(3, 3, ArrowDirection.down),
+          _a(7, 3, ArrowDirection.up),
+          _a(3, 6, ArrowDirection.down),
+          _a(7, 6, ArrowDirection.up),
+          _a(5, 2, ArrowDirection.right),
+          _a(5, 7, ArrowDirection.left),
+        ];
+
+      case 6:
+        return [
+          _a(1, 1, ArrowDirection.right),
+          _a(1, 4, ArrowDirection.right),
+          _a(1, 7, ArrowDirection.left),
+          _a(3, 2, ArrowDirection.down),
+          _a(5, 2, ArrowDirection.up),
+          _a(3, 5, ArrowDirection.down),
+          _a(7, 5, ArrowDirection.up),
+          _a(5, 7, ArrowDirection.left),
+          _a(5, 4, ArrowDirection.right),
+          _a(7, 7, ArrowDirection.up),
+          _a(7, 1, ArrowDirection.right),
+        ];
+
+      case 7:
+        return [
+          _a(1, 2, ArrowDirection.down),
+          _a(4, 2, ArrowDirection.up),
+          _a(1, 5, ArrowDirection.right),
+          _a(1, 7, ArrowDirection.left),
+          _a(3, 3, ArrowDirection.down),
+          _a(7, 3, ArrowDirection.up),
+          _a(3, 6, ArrowDirection.down),
+          _a(7, 6, ArrowDirection.up),
+          _a(5, 1, ArrowDirection.right),
+          _a(5, 5, ArrowDirection.left),
+          _a(7, 8, ArrowDirection.left),
+          _a(2, 8, ArrowDirection.down),
+        ];
+
+      case 8:
+        return [
+          _a(1, 1, ArrowDirection.right),
+          _a(1, 3, ArrowDirection.right),
+          _a(1, 7, ArrowDirection.left),
+          _a(2, 2, ArrowDirection.down),
+          _a(6, 2, ArrowDirection.up),
+          _a(2, 5, ArrowDirection.down),
+          _a(7, 5, ArrowDirection.up),
+          _a(4, 7, ArrowDirection.left),
+          _a(4, 4, ArrowDirection.right),
+          _a(6, 7, ArrowDirection.up),
+          _a(7, 1, ArrowDirection.right),
+          _a(7, 4, ArrowDirection.left),
+        ];
+
+      case 9:
+        return [
+          _a(1, 1, ArrowDirection.down),
+          _a(3, 1, ArrowDirection.down),
+          _a(7, 1, ArrowDirection.up),
+          _a(1, 3, ArrowDirection.right),
+          _a(1, 7, ArrowDirection.left),
+          _a(3, 4, ArrowDirection.down),
+          _a(7, 4, ArrowDirection.up),
+          _a(5, 7, ArrowDirection.left),
+          _a(5, 3, ArrowDirection.right),
+          _a(7, 7, ArrowDirection.up),
+          _a(4, 5, ArrowDirection.down),
+          _a(7, 5, ArrowDirection.up),
+        ];
+
+      case 10:
+        return [
+          _a(1, 1, ArrowDirection.right),
+          _a(1, 4, ArrowDirection.right),
+          _a(1, 7, ArrowDirection.left),
+          _a(2, 2, ArrowDirection.down),
+          _a(5, 2, ArrowDirection.up),
+          _a(2, 5, ArrowDirection.down),
+          _a(7, 5, ArrowDirection.up),
+          _a(2, 7, ArrowDirection.down),
+          _a(7, 7, ArrowDirection.up),
+          _a(5, 1, ArrowDirection.right),
+          _a(5, 4, ArrowDirection.right),
+          _a(5, 7, ArrowDirection.left),
+          _a(7, 1, ArrowDirection.right),
+          _a(7, 4, ArrowDirection.left),
+        ];
+
+      default:
+        return _buildLevel(((level - 1) % 10) + 1);
+    }
+  }
+
+  bool _isBlockedBy(
+    ArrowTile arrow,
+    List<ArrowTile> list,
+  ) {
+    for (final other in list) {
+      if (identical(other, arrow)) {
+        continue;
+      }
+
+      if (!other.visible || other.moving) {
+        continue;
+      }
+
+      switch (arrow.direction) {
+        case ArrowDirection.up:
+          if (other.col == arrow.col && other.row < arrow.row) {
+            return true;
+          }
+
+        case ArrowDirection.down:
+          if (other.col == arrow.col && other.row > arrow.row) {
+            return true;
+          }
+
+        case ArrowDirection.left:
+          if (other.row == arrow.row && other.col < arrow.col) {
+            return true;
+          }
+
+        case ArrowDirection.right:
+          if (other.row == arrow.row && other.col > arrow.col) {
+            return true;
+          }
+      }
     }
 
-    if (complexity <= 8) {
-      return base.take(4).toList();
-    }
-
-    if (complexity <= 12) {
-      return base.take(5).toList();
-    }
-
-    return base;
+    return false;
   }
 
   Future<void> _saveProgress() async {
@@ -1844,8 +1980,8 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
 
     final removed = <String>[];
 
-    for (int i = 0; i < paths.length; i++) {
-      if (!paths[i].visible) {
+    for (int i = 0; i < arrows.length; i++) {
+      if (!arrows[i].visible) {
         removed.add(i.toString());
       }
     }
@@ -1882,10 +2018,9 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
       for (final value in removed) {
         final index = int.tryParse(value);
 
-        if (index != null && index >= 0 && index < paths.length) {
-          paths[index].visible = false;
-          paths[index].moving = false;
-          paths[index].exitProgress = 1.0;
+        if (index != null && index >= 0 && index < arrows.length) {
+          arrows[index].visible = false;
+          arrows[index].moving = false;
         }
       }
 
@@ -1893,40 +2028,14 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     });
   }
 
-  bool _pathsOverlap(ArrowPath a, ArrowPath b) {
-    for (final pa in a.points) {
-      for (final pb in b.points) {
-        if ((pa - pb).distance < 0.11) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  bool _isBlocked(ArrowPath target) {
-    for (final other in paths) {
-      if (identical(other, target) || !other.visible || other.moving) {
-        continue;
-      }
-
-      if (_pathsOverlap(target, other)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  Future<void> _tapPath(ArrowPath path) async {
-    if (!path.visible || path.moving) {
+  Future<void> _tapArrow(ArrowTile arrow) async {
+    if (!arrow.visible || arrow.moving) {
       return;
     }
 
-    if (_isBlocked(path)) {
+    if (_isBlockedBy(arrow, arrows)) {
       setState(() {
-        path.blocked = true;
+        arrow.blocked = true;
       });
 
       await Future.delayed(const Duration(milliseconds: 180));
@@ -1934,16 +2043,15 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
       if (!mounted) return;
 
       setState(() {
-        path.blocked = false;
+        arrow.blocked = false;
       });
 
       return;
     }
 
     setState(() {
-      path.visible = false;
-      path.moving = true;
-      path.exitProgress = 0;
+      arrow.visible = false;
+      arrow.moving = true;
       moves++;
     });
 
@@ -1954,11 +2062,10 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     if (!mounted) return;
 
     setState(() {
-      path.moving = false;
-      path.exitProgress = 1;
+      arrow.moving = false;
     });
 
-    if (paths.every((p) => !p.visible && !p.moving)) {
+    if (arrows.every((a) => !a.visible && !a.moving)) {
       await Future.delayed(const Duration(milliseconds: 150));
 
       if (mounted) {
@@ -1976,9 +2083,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
   Future<void> _saveNextLevel() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final nextLevel = widget.level + 1;
-
-    await prefs.setInt('last_level', nextLevel);
+    await prefs.setInt('last_level', widget.level + 1);
 
     await prefs.remove('arrow_progress_level');
     await prefs.remove('arrow_progress_removed');
@@ -1992,12 +2097,15 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
       barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           title: const Text(
             '🎉 Level Complete!',
             textAlign: TextAlign.center,
           ),
           content: Text(
-            'All paths cleared!\n\nMoves: $moves',
+            'All arrows cleared!\n\nMoves: $moves',
             textAlign: TextAlign.center,
           ),
           actions: [
@@ -2010,12 +2118,14 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
             ),
             ElevatedButton(
               onPressed: () async {
+                final navigator = Navigator.of(dialogContext);
+
                 await _saveNextLevel();
 
                 if (!mounted) return;
 
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
+                navigator.pop();
+                navigator.pop();
               },
               child: const Text('HOME'),
             ),
@@ -2025,43 +2135,46 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     );
   }
 
-  Color get _arrowColor {
-    return Theme.of(context).brightness == Brightness.dark
-        ? Colors.white
-        : Colors.black;
-  }
-
-  Color get _boardColor {
-    return Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF111827)
-        : const Color(0xFFF7F7F7);
+  IconData _arrowIcon(ArrowDirection direction) {
+    switch (direction) {
+      case ArrowDirection.up:
+        return Icons.arrow_upward_rounded;
+      case ArrowDirection.down:
+        return Icons.arrow_downward_rounded;
+      case ArrowDirection.left:
+        return Icons.arrow_back_rounded;
+      case ArrowDirection.right:
+        return Icons.arrow_forward_rounded;
+    }
   }
 
   Color get _backgroundColor {
     return Theme.of(context).brightness == Brightness.dark
         ? const Color(0xFF080B12)
-        : const Color(0xFFF3F5FF);
+        : const Color(0xFFF7F7F9);
   }
 
-  Color get _pathBackground {
+  Color get _boardColor {
     return Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF202636)
-        : const Color(0xFFE7E9EF);
+        ? const Color(0xFF11151F)
+        : Colors.white;
   }
 
-  Offset _scalePoint(
-    Offset point,
-    double boardSize,
-  ) {
-    return Offset(
-      boardPadding + point.dx * (boardSize - boardPadding * 2),
-      boardPadding + point.dy * (boardSize - boardPadding * 2),
-    );
+  Color get _dotColor {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF6B7280)
+        : const Color(0xFFB9BDC7);
+  }
+
+  Color get _arrowColor {
+    return Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : const Color(0xFF111827);
   }
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
+    final dark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: _backgroundColor,
@@ -2071,9 +2184,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back_rounded,
-            color: brightness == Brightness.dark
-                ? Colors.white
-                : Colors.black87,
+            color: dark ? Colors.white : Colors.black87,
           ),
           onPressed: () async {
             final navigator = Navigator.of(context);
@@ -2088,9 +2199,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
         title: Text(
           'LEVEL ${widget.level}',
           style: TextStyle(
-            color: brightness == Brightness.dark
-                ? Colors.white
-                : Colors.black87,
+            color: dark ? Colors.white : Colors.black87,
             fontWeight: FontWeight.w900,
             letterSpacing: 1,
           ),
@@ -2102,9 +2211,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
             onPressed: _resetLevel,
             icon: Icon(
               Icons.refresh_rounded,
-              color: brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.black87,
+              color: dark ? Colors.white : Colors.black87,
             ),
           ),
         ],
@@ -2125,8 +2232,8 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
                 const SizedBox(width: 12),
                 _infoCard(
                   Icons.arrow_forward_rounded,
-                  'Paths',
-                  '${paths.where((p) => p.visible).length}',
+                  'Arrows',
+                  '${arrows.where((a) => a.visible).length}',
                 ),
               ],
             ),
@@ -2142,16 +2249,15 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
                     final boardSize = constraints.maxWidth;
 
                     return Container(
-                      clipBehavior: Clip.none,
                       decoration: BoxDecoration(
                         color: _boardColor,
                         borderRadius: BorderRadius.circular(30),
-                        boxShadow: brightness == Brightness.dark
+                        boxShadow: dark
                             ? null
                             : const [
                                 BoxShadow(
-                                  color: Color(0x18000000),
-                                  blurRadius: 25,
+                                  color: Color(0x16000000),
+                                  blurRadius: 28,
                                   offset: Offset(0, 12),
                                 ),
                               ],
@@ -2159,21 +2265,20 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          CustomPaint(
-                            size: Size.square(boardSize),
-                            painter: _ArrowBoardPainter(
-                              paths: paths,
-                              arrowColor: _arrowColor,
-                              pathBackground: _pathBackground,
-                              boardSize: boardSize,
-                              scalePoint: _scalePoint,
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: _DotBoardPainter(
+                                gridSize: dotGridSize,
+                                dotColor: _dotColor,
+                              ),
                             ),
                           ),
 
-                          for (final path in paths)
-                            if (path.visible || path.moving)
-                              _buildPathHitArea(
-                                path,
+                          for (int i = 0; i < arrows.length; i++)
+                            if (arrows[i].visible || arrows[i].moving)
+                              _buildArrow(
+                                arrows[i],
+                                i,
                                 boardSize,
                               ),
                         ],
@@ -2189,12 +2294,12 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30),
               child: Text(
-                'Tap a path when the route is clear',
+                'Tap an arrow only when its path is clear',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: brightness == Brightness.dark
+                  color: dark
                       ? const Color(0xFF9CA3AF)
                       : const Color(0xFF697087),
                 ),
@@ -2208,34 +2313,58 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     );
   }
 
-  Widget _buildPathHitArea(
-    ArrowPath path,
+  Widget _buildArrow(
+    ArrowTile arrow,
+    int index,
     double boardSize,
   ) {
-    final points = path.points
-        .map((point) => _scalePoint(point, boardSize))
-        .toList();
+    final spacing = boardSize / (dotGridSize - 1);
 
-    final minX = points.map((p) => p.dx).reduce((a, b) => a < b ? a : b);
-    final maxX = points.map((p) => p.dx).reduce((a, b) => a > b ? a : b);
-    final minY = points.map((p) => p.dy).reduce((a, b) => a < b ? a : b);
-    final maxY = points.map((p) => p.dy).reduce((a, b) => a > b ? a : b);
+    final x = arrow.col * spacing;
+    final y = arrow.row * spacing;
 
-    final width = (maxX - minX + 54).clamp(54.0, boardSize);
-    final height = (maxY - minY + 54).clamp(54.0, boardSize);
+    const hitSize = 58.0;
 
     return Positioned(
-      left: (minX - 27).clamp(0.0, boardSize - width),
-      top: (minY - 27).clamp(0.0, boardSize - height),
-      width: width,
-      height: height,
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () => _tapPath(path),
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 120),
-          opacity: path.blocked ? 0.55 : 1,
-          child: const SizedBox.expand(),
+      left: x - hitSize / 2,
+      top: y - hitSize / 2,
+      width: hitSize,
+      height: hitSize,
+      child: TweenAnimationBuilder<double>(
+        key: ValueKey('arrow-$index-${arrow.moving}'),
+        tween: Tween<double>(
+          begin: arrow.moving ? 0 : 1,
+          end: 1,
+        ),
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeInCubic,
+        builder: (context, progress, child) {
+          final distance = boardSize + hitSize;
+
+          final offset = switch (arrow.direction) {
+            ArrowDirection.up => Offset(0, -distance * progress),
+            ArrowDirection.down => Offset(0, distance * progress),
+            ArrowDirection.left => Offset(-distance * progress, 0),
+            ArrowDirection.right => Offset(distance * progress, 0),
+          };
+
+          return Transform.translate(
+            offset: offset,
+            child: child,
+          );
+        },
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _tapArrow(arrow),
+          child: AnimatedScale(
+            scale: arrow.blocked ? 0.82 : 1,
+            duration: const Duration(milliseconds: 100),
+            child: Icon(
+              _arrowIcon(arrow.direction),
+              color: _arrowColor,
+              size: 43,
+            ),
+          ),
         ),
       ),
     );
@@ -2298,130 +2427,40 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
   }
 }
 
-class _ArrowBoardPainter extends CustomPainter {
-  _ArrowBoardPainter({
-    required this.paths,
-    required this.arrowColor,
-    required this.pathBackground,
-    required this.boardSize,
-    required this.scalePoint,
+class _DotBoardPainter extends CustomPainter {
+  _DotBoardPainter({
+    required this.gridSize,
+    required this.dotColor,
   });
 
-  final List<ArrowPath> paths;
-  final Color arrowColor;
-  final Color pathBackground;
-  final double boardSize;
-  final Offset Function(Offset point, double boardSize) scalePoint;
+  final int gridSize;
+  final Color dotColor;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final backgroundPaint = Paint()
-      ..color = pathBackground
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 30
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
+    final paint = Paint()
+      ..color = dotColor
+      ..style = PaintingStyle.fill;
 
-    final arrowPaint = Paint()
-      ..color = arrowColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 8
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
+    final spacing = size.width / (gridSize - 1);
 
-    for (final pathData in paths) {
-      if (!pathData.visible && !pathData.moving) {
-        continue;
+    for (int row = 0; row < gridSize; row++) {
+      for (int col = 0; col < gridSize; col++) {
+        canvas.drawCircle(
+          Offset(
+            col * spacing,
+            row * spacing,
+          ),
+          2.8,
+          paint,
+        );
       }
-
-      final points = pathData.points
-          .map((point) => scalePoint(point, boardSize))
-          .toList();
-
-      if (points.length < 2) {
-        continue;
-      }
-
-      final path = Path()..moveTo(points.first.dx, points.first.dy);
-
-      for (int i = 1; i < points.length; i++) {
-        path.lineTo(points[i].dx, points[i].dy);
-      }
-
-      canvas.drawPath(path, backgroundPaint);
-
-      final visiblePaint = Paint()
-        ..color = arrowColor.withValues(
-          alpha: pathData.moving ? 0.35 : 1,
-        )
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 8
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round;
-
-      canvas.drawPath(path, visiblePaint);
-
-      final end = points.last;
-
-      double dx = 0;
-      double dy = 0;
-
-      if (points.length >= 2) {
-        final previous = points[points.length - 2];
-        dx = end.dx - previous.dx;
-        dy = end.dy - previous.dy;
-      }
-
-      final length = (dx * dx + dy * dy).sqrt();
-
-      if (length == 0) {
-        continue;
-      }
-
-      dx /= length;
-      dy /= length;
-
-      const arrowSize = 20.0;
-
-      final left = Offset(
-        end.dx - dx * arrowSize - dy * arrowSize * 0.65,
-        end.dy - dy * arrowSize + dx * arrowSize * 0.65,
-      );
-
-      final right = Offset(
-        end.dx - dx * arrowSize + dy * arrowSize * 0.65,
-        end.dy - dy * arrowSize - dx * arrowSize * 0.65,
-      );
-
-      final head = Path()
-        ..moveTo(left.dx, left.dy)
-        ..lineTo(end.dx, end.dy)
-        ..lineTo(right.dx, right.dy);
-
-      canvas.drawPath(head, arrowPaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _ArrowBoardPainter oldDelegate) {
-    return oldDelegate.paths != paths ||
-        oldDelegate.arrowColor != arrowColor ||
-        oldDelegate.pathBackground != pathBackground;
-  }
-}
-
-extension on double {
-  double sqrt() {
-    if (this <= 0) {
-      return 0;
-    }
-
-    double x = this;
-
-    for (int i = 0; i < 12; i++) {
-      x = 0.5 * (x + this / x);
-    }
-
-    return x;
+  bool shouldRepaint(covariant _DotBoardPainter oldDelegate) {
+    return oldDelegate.gridSize != gridSize ||
+        oldDelegate.dotColor != dotColor;
   }
 }
