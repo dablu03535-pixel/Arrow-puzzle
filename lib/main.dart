@@ -1724,7 +1724,7 @@ class GamePlaceholderScreen extends StatefulWidget {
   final bool resume;
 
   @override
-  _GamePlaceholderScreenState createState() => _GamePlaceholderScreenState();
+  State<GamePlaceholderScreen> createState() => _GamePlaceholderScreenState();
 }
 
 enum ArrowDirection { up, down, left, right }
@@ -1807,12 +1807,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     return 'Hard';
   }
 
-  List<double> _getPositions(int n) {
-    return List<double>.generate(
-      n,
-      (i) => _boardSize * (i + 1) / (n + 1),
-    );
-  }
+
 
   _GridCell _cell(int row, int col) => _GridCell(row, col);
 
