@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -1724,7 +1725,7 @@ class GamePlaceholderScreen extends StatefulWidget {
   final bool resume;
 
   @override
-  State<GamePlaceholderScreen> createState() => _GamePlaceholderScreenState();
+  _GamePlaceholderScreenState createState() => _GamePlaceholderScreenState();
 }
 
 enum ArrowDirection { up, down, left, right }
@@ -2057,68 +2058,6 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
   }
 
   double _spacing(int n) => _boardSize / (n + 1);
-
-  Offset _pixelFor(
-    _GridCell cell,
-    int n,
-  ) {
-    final positions = _getPositions(n);
-    return Offset(positions[cell.col], positions[cell.row]);
-  }
-
-  Offset _directionVector(ArrowDirection direction) {
-    switch (direction) {
-      case ArrowDirection.up:
-        return const Offset(0, -1);
-      case ArrowDirection.down:
-        return const Offset(0, 1);
-      case ArrowDirection.left:
-        return const Offset(-1, 0);
-      case ArrowDirection.right:
-        return const Offset(1, 0);
-    }
-  }
-
-  double _rotation(ArrowDirection direction) {
-    switch (direction) {
-      case ArrowDirection.up:
-        return 0;
-      case ArrowDirection.down:
-        return math.pi;
-      case ArrowDirection.left:
-        return -math.pi / 2;
-      case ArrowDirection.right:
-        return math.pi / 2;
-    }
-  }
-
-  double _pathLength(List<Offset> points) {
-    var length = 0.0;
-    for (int i = 1; i < points.length; i++) {
-      length += (points[i] - points[i - 1]).distance;
-    }
-    return length;
-  }
-
-  Path _makePath(List<Offset> points) {
-    final path = Path();
-    for (int i = 0; i < points.length; i++) {
-      final point = points[i];
-      if (i == 0) {
-        path.moveTo(point.dx, point.dy);
-      } else {
-        path.lineTo(point.dx, point.dy);
-      }
-    }
-    return path;
-  }
-
-  Offset _pointAtDistance(PathMetric metric, double distance) {
-    final tangent = metric.getTangentForOffset(
-      distance.clamp(0.0, metric.length).toDouble(),
-    );
-    return tangent?.position ?? Offset.zero;
-  }
 
   double _freeSteps(ArrowPath path, int n) {
     final head = path.cells.last;
@@ -2668,7 +2607,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     }
 
     if (selected != null) {
-      _tapArrow(selected!);
+      _tapArrow(selected);
     }
   }
 }
@@ -2758,6 +2697,21 @@ class _HtmlArrowPainter extends CustomPainter {
       }
     }
     return path;
+  }
+
+  double _pathLength(List<Offset> points) {
+    var length = 0.0;
+    for (int i = 1; i < points.length; i++) {
+      length += (points[i] - points[i - 1]).distance;
+    }
+    return length;
+  }
+
+  Offset _pointAtDistance(PathMetric metric, double distance) {
+    final tangent = metric.getTangentForOffset(
+      distance.clamp(0.0, metric.length).toDouble(),
+    );
+    return tangent?.position ?? Offset.zero;
   }
 
   @override
