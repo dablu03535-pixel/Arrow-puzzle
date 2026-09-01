@@ -1729,8 +1729,8 @@ class GamePlaceholderScreen extends StatefulWidget {
 
 enum ArrowDirection { up, down, left, right }
 
-class _GridCell {
-  const _GridCell(this.row, this.col);
+class GridCell {
+  const GridCell(this.row, this.col);
 
   final int row;
   final int col;
@@ -1742,7 +1742,7 @@ class ArrowPath {
     required this.direction,
   });
 
-  final List<_GridCell> cells;
+  final List<GridCell> cells;
   ArrowDirection direction;
 
   bool active = true;
@@ -1809,9 +1809,9 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
 
 
 
-  _GridCell _cell(int row, int col) => _GridCell(row, col);
+  GridCell _cell(int row, int col) => GridCell(row, col);
 
-  ArrowPath _makePath(List<_GridCell> cells, ArrowDirection direction) {
+  ArrowPath _makePath(List<GridCell> cells, ArrowDirection direction) {
     return ArrowPath(cells: cells, direction: direction);
   }
 
@@ -1822,7 +1822,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     return ArrowDirection.right;
   }
 
-  _GridCell _nextCell(_GridCell cell, ArrowDirection direction) {
+  GridCell _nextCell(GridCell cell, ArrowDirection direction) {
     switch (direction) {
       case ArrowDirection.up:
         return _cell(cell.row - 1, cell.col);
@@ -1844,7 +1844,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
       for (int col = 0; col < n; col++) {
         if (visited[row][col]) continue;
 
-        final cells = <_GridCell>[_cell(row, col)];
+        final cells = <GridCell>[_cell(row, col)];
         visited[row][col] = true;
         var currentRow = row;
         var currentCol = col;
@@ -1936,7 +1936,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     );
   }
 
-  int _manhattan(_GridCell a, _GridCell b) {
+  int _manhattan(GridCell a, GridCell b) {
     return (a.row - b.row).abs() + (a.col - b.col).abs();
   }
 
@@ -2002,7 +2002,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     final simulation = original
         .map(
           (path) => ArrowPath(
-            cells: List<_GridCell>.from(path.cells),
+            cells: List<GridCell>.from(path.cells),
             direction: path.direction,
           ),
         )
@@ -2028,7 +2028,7 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
 
   List<ArrowPath> _straightColumnsFallback(int n) {
     return List<ArrowPath>.generate(n, (col) {
-      final cells = <_GridCell>[];
+      final cells = <GridCell>[];
       for (int row = n - 1; row >= 0; row--) {
         cells.add(_cell(row, col));
       }
@@ -2664,7 +2664,7 @@ class _HtmlArrowPainter extends CustomPainter {
     }
   }
 
-  Offset _point(_GridCell cell, List<double> positions) {
+  Offset _point(GridCell cell, List<double> positions) {
     return Offset(positions[cell.col], positions[cell.row]);
   }
 
