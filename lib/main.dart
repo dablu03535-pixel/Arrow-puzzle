@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1710,6 +1712,7 @@ class _FeatureScreen extends StatelessWidget {
 
 
 
+
 class GamePlaceholderScreen extends StatefulWidget {
   const GamePlaceholderScreen({
     super.key,
@@ -1721,288 +1724,346 @@ class GamePlaceholderScreen extends StatefulWidget {
   final bool resume;
 
   @override
-  State<GamePlaceholderScreen> createState() =>
-      _GamePlaceholderScreenState();
+  State<GamePlaceholderScreen> createState() => _GamePlaceholderScreenState();
 }
 
-enum ArrowDirection {
-  up,
-  down,
-  left,
-  right,
+enum ArrowDirection { up, down, left, right }
+
+class _GridCell {
+  const _GridCell(this.row, this.col);
+
+  final int row;
+  final int col;
 }
 
 class ArrowPath {
   ArrowPath({
-    required this.points,
+    required this.cells,
     required this.direction,
   });
 
-  final List<Offset> points;
-  final ArrowDirection direction;
+  final List<_GridCell> cells;
+  ArrowDirection direction;
 
-  bool visible = true;
-  bool moving = false;
-  bool blocked = false;
+  bool active = true;
+  bool bumping = false;
+  bool penalized = false;
+  bool hintGlow = false;
+  bool hintStay = false;
 }
 
 class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     with SingleTickerProviderStateMixin {
-  static const int gridSize = 5;
+  static const double _boardSize = 300;
+  static const int _maxLevel = 6;
 
   late List<ArrowPath> paths;
+  late AnimationController _animationController;
 
-  late AnimationController _moveController;
-
-  int? _movingIndex;
-  int moves = 0;
+  int? _animatedIndex;
+  bool _exitAnimation = false;
+  bool _showGrid = false;
+  bool _redFlash = false;
+  bool _levelOver = false;
+  bool _gameWon = false;
+  int _mistakes = 0;
+  int _clickedCount = 0;
+  int _totalArrows = 0;
+  double _bumpDistance = 0;
+  String _status = '';
+  String _statusClass = 'status';
 
   @override
   void initState() {
     super.initState();
-
-    _moveController = AnimationController(
+    _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 430),
+      duration: const Duration(milliseconds: 650),
     )..addListener(() {
-        if (mounted) {
-          setState(() {});
-        }
+        if (mounted) setState(() {});
       });
-
-    _createLevel();
-
-    if (widget.resume) {
-      _restoreProgress();
-    }
+    _buildBoard(_safeLevel(widget.level));
   }
 
   @override
   void dispose() {
-    _moveController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
-  void _createLevel() {
-    paths = _buildLevel(widget.level);
-    moves = 0;
-    _movingIndex = null;
-    _moveController.reset();
+  int _safeLevel(int level) {
+    if (level < 1) return 1;
+    if (level > _maxLevel) return _maxLevel;
+    return level;
   }
 
-  ArrowPath _path(
-    List<Offset> points,
-    ArrowDirection direction,
-  ) {
-    return ArrowPath(
-      points: points,
-      direction: direction,
+  int _gridForLevel(int level) {
+    return 2 + level;
+  }
+
+  String _tierForLevel(int level) {
+    if (level <= 2) return 'Easy';
+    if (level <= 4) return 'Medium';
+    return 'Hard';
+  }
+
+  List<double> _getPositions(int n) {
+    return List<double>.generate(
+      n,
+      (i) => _boardSize * (i + 1) / (n + 1),
     );
   }
 
-  List<ArrowPath> _buildLevel(int level) {
-    // LEVEL 1
-    //
-    // 5 x 5 dot grid.
-    //
-    // The paths are deliberately interlocked so the player
-    // must discover which arrow can leave first.
-    //
-    // Every arrow is a complete path, not a standalone icon.
+  _GridCell _cell(int row, int col) => _GridCell(row, col);
 
-    switch (level) {
-      case 1:
-        return [
-          // Horizontal path blocked by the path above it.
-          _path(
-            const [
-              Offset(2, 0),
-              Offset(2, 1),
-              Offset(2, 2),
-            ],
-            ArrowDirection.right,
-          ),
+  ArrowPath _makePath(List<_GridCell> cells, ArrowDirection direction) {
+    return ArrowPath(cells: cells, direction: direction);
+  }
 
-          // Free first arrow.
-          _path(
-            const [
-              Offset(0, 3),
-              Offset(1, 3),
-              Offset(2, 3),
-              Offset(2, 4),
-              Offset(3, 4),
-            ],
-            ArrowDirection.right,
-          ),
+  ArrowDirection _directionFromStep(int dr, int dc) {
+    if (dr < 0) return ArrowDirection.up;
+    if (dr > 0) return ArrowDirection.down;
+    if (dc < 0) return ArrowDirection.left;
+    return ArrowDirection.right;
+  }
 
-          // Lower path.
-          _path(
-            const [
-              Offset(4, 4),
-              Offset(4, 3),
-              Offset(4, 2),
-            ],
-            ArrowDirection.left,
-          ),
-
-          // Vertical path blocked by the horizontal path.
-          _path(
-            const [
-              Offset(0, 0),
-              Offset(1, 0),
-              Offset(1, 1),
-              Offset(1, 2),
-            ],
-            ArrowDirection.down,
-          ),
-
-          // Vertical path which becomes free after path #0 leaves.
-          _path(
-            const [
-              Offset(4, 1),
-              Offset(4, 0),
-              Offset(3, 0),
-            ],
-            ArrowDirection.up,
-          ),
-
-          // Upper-right curved path.
-          _path(
-            const [
-              Offset(0, 4),
-              Offset(1, 4),
-              Offset(1, 3),
-              Offset(2, 3),
-            ],
-            ArrowDirection.down,
-          ),
-        ];
-
-      case 2:
-        return [
-          _path(
-            const [
-              Offset(0, 0),
-              Offset(0, 1),
-              Offset(1, 1),
-              Offset(2, 1),
-            ],
-            ArrowDirection.down,
-          ),
-          _path(
-            const [
-              Offset(0, 4),
-              Offset(1, 4),
-              Offset(2, 4),
-              Offset(2, 3),
-            ],
-            ArrowDirection.left,
-          ),
-          _path(
-            const [
-              Offset(4, 0),
-              Offset(3, 0),
-              Offset(3, 1),
-              Offset(3, 2),
-            ],
-            ArrowDirection.up,
-          ),
-          _path(
-            const [
-              Offset(4, 4),
-              Offset(4, 3),
-              Offset(3, 3),
-              Offset(2, 3),
-            ],
-            ArrowDirection.up,
-          ),
-          _path(
-            const [
-              Offset(1, 4),
-              Offset(1, 3),
-              Offset(1, 2),
-            ],
-            ArrowDirection.left,
-          ),
-          _path(
-            const [
-              Offset(4, 2),
-              Offset(3, 2),
-              Offset(2, 2),
-              Offset(2, 1),
-            ],
-            ArrowDirection.up,
-          ),
-        ];
-
-      case 3:
-        return [
-          _path(
-            const [
-              Offset(0, 0),
-              Offset(1, 0),
-              Offset(2, 0),
-              Offset(2, 1),
-            ],
-            ArrowDirection.right,
-          ),
-          _path(
-            const [
-              Offset(0, 4),
-              Offset(0, 3),
-              Offset(1, 3),
-              Offset(2, 3),
-            ],
-            ArrowDirection.down,
-          ),
-          _path(
-            const [
-              Offset(4, 0),
-              Offset(3, 0),
-              Offset(3, 1),
-              Offset(3, 2),
-            ],
-            ArrowDirection.up,
-          ),
-          _path(
-            const [
-              Offset(4, 4),
-              Offset(3, 4),
-              Offset(3, 3),
-              Offset(2, 3),
-            ],
-            ArrowDirection.left,
-          ),
-          _path(
-            const [
-              Offset(1, 1),
-              Offset(1, 2),
-              Offset(2, 2),
-              Offset(3, 2),
-            ],
-            ArrowDirection.down,
-          ),
-          _path(
-            const [
-              Offset(4, 2),
-              Offset(4, 3),
-              Offset(4, 4),
-            ],
-            ArrowDirection.right,
-          ),
-          _path(
-            const [
-              Offset(0, 2),
-              Offset(1, 2),
-              Offset(1, 1),
-            ],
-            ArrowDirection.up,
-          ),
-        ];
-
-      default:
-        return _buildLevel(((level - 1) % 3) + 1);
+  _GridCell _nextCell(_GridCell cell, ArrowDirection direction) {
+    switch (direction) {
+      case ArrowDirection.up:
+        return _cell(cell.row - 1, cell.col);
+      case ArrowDirection.down:
+        return _cell(cell.row + 1, cell.col);
+      case ArrowDirection.left:
+        return _cell(cell.row, cell.col - 1);
+      case ArrowDirection.right:
+        return _cell(cell.row, cell.col + 1);
     }
+  }
+
+  List<ArrowPath> _generatePaths(int n) {
+    final visited = List.generate(n, (_) => List<bool>.filled(n, false));
+    final result = <ArrowPath>[];
+    final random = math.Random();
+
+    for (int row = 0; row < n; row++) {
+      for (int col = 0; col < n; col++) {
+        if (visited[row][col]) continue;
+
+        final cells = <_GridCell>[_cell(row, col)];
+        visited[row][col] = true;
+        var currentRow = row;
+        var currentCol = col;
+        ArrowDirection? lastDirection;
+        final maxLength = 2 + random.nextInt(4);
+
+        while (cells.length < maxLength) {
+          final dirs = <List<dynamic>>[
+            [-1, 0, ArrowDirection.up],
+            [1, 0, ArrowDirection.down],
+            [0, -1, ArrowDirection.left],
+            [0, 1, ArrowDirection.right],
+          ];
+          dirs.shuffle(random);
+
+          var moved = false;
+          for (final entry in dirs) {
+            final dr = entry[0] as int;
+            final dc = entry[1] as int;
+            final direction = entry[2] as ArrowDirection;
+            final nr = currentRow + dr;
+            final nc = currentCol + dc;
+
+            if (nr >= 0 && nr < n && nc >= 0 && nc < n && !visited[nr][nc]) {
+              cells.add(_cell(nr, nc));
+              visited[nr][nc] = true;
+              currentRow = nr;
+              currentCol = nc;
+              lastDirection = direction;
+              moved = true;
+              break;
+            }
+          }
+
+          if (!moved) break;
+        }
+
+        result.add(_makePath(cells, lastDirection ?? ArrowDirection.up));
+      }
+    }
+
+    var changed = true;
+    var guard = 0;
+    while (changed && guard < result.length + 5) {
+      changed = false;
+      guard++;
+
+      for (int i = result.length - 1; i >= 0; i--) {
+        if (result[i].cells.length != 1) continue;
+
+        final orphan = result[i].cells.first;
+        var merged = false;
+
+        for (int j = 0; j < result.length; j++) {
+          if (j == i) continue;
+          final target = result[j];
+          final first = target.cells.first;
+          final last = target.cells.last;
+
+          if (_manhattan(first, orphan) == 1) {
+            target.cells.insert(0, orphan);
+            merged = true;
+          } else if (_manhattan(last, orphan) == 1) {
+            target.cells.add(orphan);
+            targetDirectionUpdate(target);
+            merged = true;
+          }
+
+          if (merged) break;
+        }
+
+        if (merged) {
+          result.removeAt(i);
+          changed = true;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  void targetDirectionUpdate(ArrowPath target) {
+    if (target.cells.length < 2) return;
+    final last = target.cells[target.cells.length - 1];
+    final previous = target.cells[target.cells.length - 2];
+    target.direction = _directionFromStep(
+      last.row - previous.row,
+      last.col - previous.col,
+    );
+  }
+
+  int _manhattan(_GridCell a, _GridCell b) {
+    return (a.row - b.row).abs() + (a.col - b.col).abs();
+  }
+
+  bool _validatePaths(List<ArrowPath> candidate, int n) {
+    final seen = <String>{};
+
+    for (final path in candidate) {
+      if (path.cells.isEmpty) return false;
+
+      for (int i = 0; i < path.cells.length; i++) {
+        final cell = path.cells[i];
+        if (cell.row < 0 || cell.row >= n || cell.col < 0 || cell.col >= n) {
+          return false;
+        }
+
+        final key = '${cell.row},${cell.col}';
+        if (!seen.add(key)) return false;
+
+        if (i > 0 && _manhattan(path.cells[i - 1], cell) != 1) {
+          return false;
+        }
+      }
+    }
+
+    return seen.length == n * n;
+  }
+
+  bool _isBlockedFor(
+    ArrowPath path,
+    List<ArrowPath> allPaths,
+    int n,
+  ) {
+    final head = path.cells.last;
+    var current = _nextCell(head, path.direction);
+
+    while (current.row >= 0 && current.row < n && current.col >= 0 && current.col < n) {
+      for (final other in allPaths) {
+        if (identical(other, path) || !other.active) continue;
+        if (other.cells.any((cell) => cell.row == current.row && cell.col == current.col)) {
+          return true;
+        }
+      }
+      current = _nextCell(current, path.direction);
+    }
+
+    return false;
+  }
+
+  bool _isSolvable(List<ArrowPath> original, int n) {
+    final simulation = original
+        .map(
+          (path) => ArrowPath(
+            cells: List<_GridCell>.from(path.cells),
+            direction: path.direction,
+          ),
+        )
+        .toList();
+
+    var remaining = simulation.length;
+    var progress = true;
+
+    while (remaining > 0 && progress) {
+      progress = false;
+      for (final path in simulation) {
+        if (!path.active) continue;
+        if (!_isBlockedFor(path, simulation, n)) {
+          path.active = false;
+          remaining--;
+          progress = true;
+        }
+      }
+    }
+
+    return remaining == 0;
+  }
+
+  List<ArrowPath> _straightColumnsFallback(int n) {
+    return List<ArrowPath>.generate(n, (col) {
+      final cells = <_GridCell>[];
+      for (int row = n - 1; row >= 0; row--) {
+        cells.add(_cell(row, col));
+      }
+      return _makePath(cells, ArrowDirection.up);
+    });
+  }
+
+  List<ArrowPath> _generateSolvableLevel(int n) {
+    for (int attempt = 0; attempt < 250; attempt++) {
+      final candidate = _generatePaths(n);
+      if (_validatePaths(candidate, n) && _isSolvable(candidate, n)) {
+        return candidate;
+      }
+    }
+    return _straightColumnsFallback(n);
+  }
+
+  void _buildBoard(int level) {
+    _animationController.reset();
+    _animatedIndex = null;
+    _exitAnimation = false;
+    _showGrid = false;
+    _redFlash = false;
+    _levelOver = false;
+    _gameWon = false;
+    _mistakes = 0;
+    _clickedCount = 0;
+
+    final n = _gridForLevel(level);
+    paths = _generateSolvableLevel(n);
+    _totalArrows = paths.length;
+    _status = '$_totalArrows arrows baaki hain';
+    _statusClass = 'status';
+  }
+
+  double _spacing(int n) => _boardSize / (n + 1);
+
+  Offset _pixelFor(
+    _GridCell cell,
+    int n,
+  ) {
+    final positions = _getPositions(n);
+    return Offset(positions[cell.col], positions[cell.row]);
   }
 
   Offset _directionVector(ArrowDirection direction) {
@@ -2018,606 +2079,620 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     }
   }
 
-
-  bool _isBlocked(ArrowPath arrow) {
-    final head = arrow.points.last;
-    final direction = _directionVector(arrow.direction);
-
-    for (final other in paths) {
-      if (identical(other, arrow)) {
-        continue;
-      }
-
-      if (!other.visible || other.moving) {
-        continue;
-      }
-
-      for (final point in other.points) {
-        final relativeX = point.dx - head.dx;
-        final relativeY = point.dy - head.dy;
-
-        final isOnRay = switch (arrow.direction) {
-          ArrowDirection.up =>
-            relativeX == 0 && relativeY < 0,
-          ArrowDirection.down =>
-            relativeX == 0 && relativeY > 0,
-          ArrowDirection.left =>
-            relativeY == 0 && relativeX < 0,
-          ArrowDirection.right =>
-            relativeY == 0 && relativeX > 0,
-        };
-
-        if (isOnRay) {
-          return true;
-        }
-      }
-
-      // Also detect an intersecting segment on the exit ray.
-      for (int i = 0; i < other.points.length - 1; i++) {
-        final a = other.points[i];
-        final b = other.points[i + 1];
-
-        if (_segmentBlocksRay(
-          head,
-          direction,
-          a,
-          b,
-        )) {
-          return true;
-        }
-      }
+  double _rotation(ArrowDirection direction) {
+    switch (direction) {
+      case ArrowDirection.up:
+        return 0;
+      case ArrowDirection.down:
+        return math.pi;
+      case ArrowDirection.left:
+        return -math.pi / 2;
+      case ArrowDirection.right:
+        return math.pi / 2;
     }
-
-    return false;
   }
 
-  bool _segmentBlocksRay(
-    Offset origin,
-    Offset direction,
-    Offset a,
-    Offset b,
-  ) {
-    if (direction.dx != 0) {
-      if (a.dy != origin.dy || b.dy != origin.dy) {
-        return false;
-      }
+  double _pathLength(List<Offset> points) {
+    var length = 0.0;
+    for (int i = 1; i < points.length; i++) {
+      length += (points[i] - points[i - 1]).distance;
+    }
+    return length;
+  }
 
-      final minX = a.dx < b.dx ? a.dx : b.dx;
-      final maxX = a.dx > b.dx ? a.dx : b.dx;
-
-      if (direction.dx > 0) {
-        return maxX > origin.dx;
+  Path _makePath(List<Offset> points) {
+    final path = Path();
+    for (int i = 0; i < points.length; i++) {
+      final point = points[i];
+      if (i == 0) {
+        path.moveTo(point.dx, point.dy);
       } else {
-        return minX < origin.dx;
+        path.lineTo(point.dx, point.dy);
       }
     }
-
-    if (a.dx != origin.dx || b.dx != origin.dx) {
-      return false;
-    }
-
-    final minY = a.dy < b.dy ? a.dy : b.dy;
-    final maxY = a.dy > b.dy ? a.dy : b.dy;
-
-    if (direction.dy > 0) {
-      return maxY > origin.dy;
-    } else {
-      return minY < origin.dy;
-    }
+    return path;
   }
 
-  Future<void> _handleBoardTap(
-    Offset localPosition,
-    double boardSize,
-  ) async {
-    if (_movingIndex != null) {
-      return;
-    }
+  Offset _pointAtDistance(PathMetric metric, double distance) {
+    final tangent = metric.getTangentForOffset(
+      distance.clamp(0.0, metric.length).toDouble(),
+    );
+    return tangent?.position ?? Offset.zero;
+  }
 
-    final spacing = boardSize / (gridSize - 1);
+  double _freeSteps(ArrowPath path, int n) {
+    final head = path.cells.last;
+    var current = _nextCell(head, path.direction);
+    var free = 0;
 
-    int? selectedIndex;
-    double bestDistance = double.infinity;
-
-    for (int i = 0; i < paths.length; i++) {
-      final arrow = paths[i];
-
-      if (!arrow.visible || arrow.moving) {
-        continue;
-      }
-
-      for (final point in arrow.points) {
-        final pixel = Offset(
-          point.dx * spacing,
-          point.dy * spacing,
-        );
-
-        final distance = (pixel - localPosition).distance;
-
-        if (distance < 34 && distance < bestDistance) {
-          bestDistance = distance;
-          selectedIndex = i;
-        }
-      }
-    }
-
-    if (selectedIndex == null) {
-      return;
-    }
-
-    final arrow = paths[selectedIndex];
-
-    if (_isBlocked(arrow)) {
-      setState(() {
-        arrow.blocked = true;
-      });
-
-      await Future.delayed(
-        const Duration(milliseconds: 160),
+    while (current.row >= 0 && current.row < n && current.col >= 0 && current.col < n) {
+      final occupied = paths.any(
+        (other) =>
+            other.active &&
+            other.cells.any((cell) => cell.row == current.row && cell.col == current.col),
       );
+      if (occupied) break;
+      free++;
+      current = _nextCell(current, path.direction);
+    }
 
-      if (!mounted) {
-        return;
-      }
+    return free.toDouble();
+  }
 
+  Future<void> _tapArrow(int index) async {
+    if (_animatedIndex != null || _levelOver) return;
+
+    final arrow = paths[index];
+    if (!arrow.active || arrow.bumping) return;
+
+    final n = _gridForLevel(_safeLevel(widget.level));
+
+    if (_isBlockedFor(arrow, paths, n)) {
+      await _runBump(index, n);
+      return;
+    }
+
+    arrow.active = false;
+    _clickedCount++;
+    _status = '${_totalArrows - _clickedCount} arrows baaki hain';
+    _statusClass = 'status';
+    _exitAnimation = true;
+    _showGrid = false;
+    _animatedIndex = index;
+    _animationController.duration = const Duration(milliseconds: 650);
+    _animationController.reset();
+
+    if (mounted) setState(() {});
+
+    await _animationController.forward();
+
+    if (!mounted) return;
+
+    setState(() {
+      _animatedIndex = null;
+      _exitAnimation = false;
+    });
+
+    if (_clickedCount == _totalArrows) {
+      _levelOver = true;
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+      if (!mounted) return;
       setState(() {
-        arrow.blocked = false;
+        _gameWon = true;
+        _status = widget.level < _maxLevel
+            ? '🎉 Level ${_safeLevel(widget.level)} Complete!'
+            : '🏆 Sabhi Levels Complete!';
+        _statusClass = 'win';
       });
-
-      return;
     }
+  }
+
+  Future<void> _runBump(int index, int n) async {
+    final arrow = paths[index];
+    final firstPenalty = !arrow.penalized;
+    arrow.bumping = true;
+    arrow.penalized = true;
+    _bumpDistance = _freeSteps(arrow, n) * _spacing(n) + _spacing(n) * 0.4;
+    _animatedIndex = index;
+    _exitAnimation = false;
+    _animationController.duration = const Duration(milliseconds: 400);
+    _animationController.reset();
 
     setState(() {
-      arrow.moving = true;
-      _movingIndex = selectedIndex;
-      moves++;
+      _redFlash = true;
+      if (firstPenalty) _mistakes++;
     });
 
-    _moveController.reset();
+    Future<void>.delayed(const Duration(milliseconds: 450)).then((_) {
+      if (mounted) setState(() => _redFlash = false);
+    });
 
-    await _moveController.forward();
-
-    if (!mounted) {
-      return;
+    if (_mistakes >= 3) {
+      _levelOver = true;
     }
+
+    await _animationController.forward();
+
+    if (!mounted) return;
 
     setState(() {
-      arrow.visible = false;
-      arrow.moving = false;
-      _movingIndex = null;
+      arrow.bumping = false;
+      _animatedIndex = null;
+      _bumpDistance = 0;
     });
 
-    await _saveProgress();
-
-    if (!mounted) {
-      return;
-    }
-
-    if (paths.every((path) => !path.visible)) {
-      await Future.delayed(
-        const Duration(milliseconds: 180),
-      );
-
-      if (mounted) {
-        _showLevelComplete();
-      }
+    if (_mistakes >= 3) {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+      _showOutOfLives();
     }
   }
 
-  Future<void> _saveProgress() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final removed = <String>[];
-
-    for (int i = 0; i <paths.length; i++) {
-      if (!paths[i].visible) {
-        removed.add(i.toString());
-      }
-    }
-
-    await prefs.setInt(
-      'arrow_progress_level',
-      widget.level,
-    );
-
-    await prefs.setStringList(
-      'arrow_progress_removed',
-      removed,
-    );
-
-    await prefs.setInt(
-      'arrow_progress_moves',
-      moves,
-    );
-
-    await prefs.setBool(
-      'arrow_progress_exists',
-      true,
-    );
-  }
-
-  Future<void> _restoreProgress() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    if (!(prefs.getBool('arrow_progress_exists') ?? false)) {
-      return;
-    }
-
-    final savedLevel =
-        prefs.getInt('arrow_progress_level') ?? widget.level;
-
-    if (savedLevel != widget.level) {
-      return;
-    }
-
-    final removed =
-        prefs.getStringList('arrow_progress_removed') ??
-            <String>[];
-
-    final savedMoves =
-        prefs.getInt('arrow_progress_moves') ?? 0;
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      for (final value in removed) {
-        final index = int.tryParse(value);
-
-        if (index != null &&
-            index >= 0 &&
-            index < paths.length) {
-          paths[index].visible = false;
-          paths[index].moving = false;
-        }
-      }
-
-      moves = savedMoves;
-    });
-  }
-
-  void _resetLevel() {
-    setState(() {
-      _createLevel();
-    });
-  }
-
-  Future<void> _saveNextLevel() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    await prefs.setInt(
-      'last_level',
-      widget.level + 1,
-    );
-
-    await prefs.remove('arrow_progress_level');
-    await prefs.remove('arrow_progress_removed');
-    await prefs.remove('arrow_progress_moves');
-
-    await prefs.setBool(
-      'arrow_progress_exists',
-      false,
-    );
-  }
-
-  void _showLevelComplete() {
+  void _showOutOfLives() {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(
+          backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(22),
           ),
-          title: const Text(
-            '🎉 Level Complete!',
-            textAlign: TextAlign.center,
+          contentPadding: const EdgeInsets.fromLTRB(30, 28, 30, 24),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('❤️', style: TextStyle(fontSize: 46)),
+              const SizedBox(height: 8),
+              const Text(
+                'Out of Lives!',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1A1C23),
+                ),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    if (!mounted) return;
+                    setState(() {
+                      _mistakes = 0;
+                      _levelOver = false;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3B5BFF),
+                    foregroundColor: Colors.white,
+                    shape: const StadiumBorder(),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text('Get More Lives'),
+                ),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    if (!mounted) return;
+                    setState(() {
+                      _buildBoard(_safeLevel(widget.level));
+                    });
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFFEEF0F6),
+                    foregroundColor: const Color(0xFF1A1C23),
+                    shape: const StadiumBorder(),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text('Restart Game'),
+                ),
+              ),
+            ],
           ),
-          content: Text(
-            'All arrows cleared!\n\nMoves: $moves',
-            textAlign: TextAlign.center,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-
-                if (mounted) {
-                  _resetLevel();
-                }
-              },
-              child: const Text('REPLAY'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await _saveNextLevel();
-
-                if (!mounted) {
-                  return;
-                }
-
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
-              },
-              child: const Text('NEXT'),
-            ),
-          ],
         );
       },
     );
   }
 
-  Color get _backgroundColor {
-    return Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF080B12)
-        : const Color(0xFFF7F7F9);
+  void _showHint() {
+    final n = _gridForLevel(_safeLevel(widget.level));
+    ArrowPath? candidate;
+    for (final path in paths) {
+      if (path.active && !_isBlockedFor(path, paths, n) && !path.hintStay) {
+        candidate = path;
+        break;
+      }
+    }
+    if (candidate == null) return;
+
+    setState(() => candidate!.hintGlow = true);
+    Future<void>.delayed(const Duration(milliseconds: 1800)).then((_) {
+      if (!mounted) return;
+      setState(() {
+        candidate!.hintGlow = false;
+        candidate.hintStay = true;
+      });
+    });
   }
 
-  Color get _boardColor {
-    return Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF11151F)
-        : Colors.white;
+  void _resetLevel() {
+    setState(() => _buildBoard(_safeLevel(widget.level)));
   }
 
-  Color get _dotColor {
-    return Theme.of(context).brightness == Brightness.dark
-        ? const Color(0xFF596273)
-        : const Color(0xFFB8BDC8);
-  }
-
-  Color get _arrowColor {
-    return Theme.of(context).brightness == Brightness.dark
-        ? Colors.white
-        : const Color(0xFF111827);
+  void _nextLevel() {
+    if (widget.level < _maxLevel) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => GamePlaceholderScreen(level: widget.level + 1),
+        ),
+      );
+    } else {
+      _resetLevel();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final dark =
-        Theme.of(context).brightness == Brightness.dark;
+    final level = _safeLevel(widget.level);
+    final n = _gridForLevel(level);
+    final tier = _tierForLevel(level);
 
     return Scaffold(
-      backgroundColor: _backgroundColor,
+      backgroundColor: const Color(0xFFEEF0F6),
       appBar: AppBar(
-        backgroundColor: _backgroundColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
+          icon: const Icon(
             Icons.arrow_back_rounded,
-            color: dark ? Colors.white : Colors.black87,
+            color: Color(0xFF1A1C23),
           ),
-          onPressed: () async {
-            final navigator = Navigator.of(context);
-
-            await _saveProgress();
-
-            if (!mounted) {
-              return;
-            }
-
-            navigator.pop();
-          },
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          'LEVEL ${widget.level}',
+        title: const Text(
+          'Arrow Puzzle',
           style: TextStyle(
-            color: dark ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1,
+            color: Color(0xFF1A1C23),
+            fontSize: 20,
+            letterSpacing: 0.5,
+            fontWeight: FontWeight.w700,
           ),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            tooltip: 'Reset',
-            onPressed:
-                _movingIndex == null ? _resetLevel : null,
-            icon: Icon(
-              Icons.refresh_rounded,
-              color: dark ? Colors.white : Colors.black87,
-            ),
-          ),
-        ],
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 8),
+      body: Stack(
+        children: [
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final boardSize = math.min(
+                  _boardSize,
+                  math.min(constraints.maxWidth - 36, constraints.maxHeight - 240),
+                ).toDouble();
+                final safeBoard = math.max(230.0, boardSize).toDouble();
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _infoCard(
-                  Icons.touch_app_rounded,
-                  'Moves',
-                  '$moves',
-                ),
-                const SizedBox(width: 12),
-                _infoCard(
-                  Icons.arrow_forward_rounded,
-                  'Arrows',
-                  '${paths.where((p) => p.visible).length}',
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(22),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final boardSize =
-                            constraints.maxWidth;
-
-                        return Container(
+                return Center(
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: tier == 'Easy'
+                                    ? const Color(0xFFDFF5E6)
+                                    : tier == 'Medium'
+                                        ? const Color(0xFFFFF3D6)
+                                        : const Color(0xFFFFE1E1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                tier.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                  color: tier == 'Easy'
+                                      ? const Color(0xFF1A8F5E)
+                                      : tier == 'Medium'
+                                          ? const Color(0xFFB8860B)
+                                          : const Color(0xFFD23838),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEEF0F6),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                'Level $level',
+                                style: const TextStyle(
+                                  color: Color(0xFF1A1C23),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(3, (i) {
+                            return AnimatedOpacity(
+                              duration: const Duration(milliseconds: 250),
+                              opacity: i < _mistakes ? 0.25 : 1,
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 3),
+                                child: Text(
+                                  '❤️',
+                                  style: TextStyle(fontSize: 18),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Jis arrow ke aage koi arrow na ho, usi pe tap karo',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF6B7080),
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Container(
+                          width: safeBoard,
+                          height: safeBoard,
                           decoration: BoxDecoration(
-                            color: _boardColor,
-                            borderRadius:
-                                BorderRadius.circular(28),
-                            boxShadow: dark
-                                ? null
-                                : const [
-                                    BoxShadow(
-                                      color:
-                                          Color(0x16000000),
-                                      blurRadius: 26,
-                                      offset: Offset(0, 12),
-                                    ),
-                                  ],
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x18000000),
+                                blurRadius: 22,
+                                offset: Offset(0, 10),
+                              ),
+                            ],
                           ),
                           child: GestureDetector(
-                            behavior:
-                                HitTestBehavior.opaque,
+                            behavior: HitTestBehavior.opaque,
                             onTapUp: (details) {
-                              _handleBoardTap(
+                              if (_animatedIndex != null || _levelOver) return;
+                              _selectByPosition(
                                 details.localPosition,
-                                boardSize,
+                                safeBoard,
+                                n,
                               );
                             },
                             child: CustomPaint(
-                              painter:
-                                  _ArrowPuzzlePainter(
+                              painter: _HtmlArrowPainter(
                                 paths: paths,
-                                gridSize: gridSize,
-                                dotColor: _dotColor,
-                                arrowColor: _arrowColor,
-                                movingIndex:
-                                    _movingIndex,
-                                moveProgress:
-                                    _moveController.value,
+                                gridSize: n,
+                                showGrid: _showGrid,
+                                animatedIndex: _animatedIndex,
+                                exitAnimation: _exitAnimation,
+                                progress: _animationController.value,
+                                bumpDistance: _bumpDistance,
                               ),
-                              size: Size.square(boardSize),
+                              size: Size.square(safeBoard),
                             ),
                           ),
-                        );
-                      },
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _roundControl(
+                              icon: Icons.lightbulb_outline_rounded,
+                              active: false,
+                              onTap: _showHint,
+                            ),
+                            const SizedBox(width: 14),
+                            _roundControl(
+                              icon: Icons.tag_rounded,
+                              active: _showGrid,
+                              onTap: () => setState(() => _showGrid = !_showGrid),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 160),
+                          child: Text(
+                            _status,
+                            key: ValueKey(_status),
+                            style: TextStyle(
+                              color: _statusClass == 'win'
+                                  ? const Color(0xFF1A8F5E)
+                                  : _statusClass == 'fail'
+                                      ? const Color(0xFFD23838)
+                                      : const Color(0xFF6B7080),
+                              fontSize: _statusClass == 'win' ? 16 : 13,
+                              fontWeight: _statusClass == 'win'
+                                  ? FontWeight.w700
+                                  : FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        if (_gameWon)
+                          ElevatedButton(
+                            onPressed: _nextLevel,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3B5BFF),
+                              foregroundColor: Colors.white,
+                              shape: const StadiumBorder(),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 22,
+                                vertical: 10,
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              level < _maxLevel
+                                  ? '➡️ Next Level'
+                                  : '🔁 Restart from Level 1',
+                            ),
+                          ),
+                        const SizedBox(height: 20),
+                      ],
                     ),
+                  ),
+                );
+              },
+            ),
+          ),
+          IgnorePointer(
+            child: AnimatedOpacity(
+              opacity: _redFlash ? 1 : 0,
+              duration: const Duration(milliseconds: 40),
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(
+                    colors: [
+                      Color(0x00D23838),
+                      Color(0x8CD23838),
+                    ],
+                    stops: [0.40, 1.0],
                   ),
                 ),
               ),
             ),
-
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 28),
-              child: Text(
-                'Clear the arrows in the right order',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: dark
-                      ? const Color(0xFF9CA3AF)
-                      : const Color(0xFF697087),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _infoCard(
-    IconData icon,
-    String title,
-    String value,
-  ) {
-    final dark =
-        Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 10,
-      ),
-      decoration: BoxDecoration(
-        color: dark
-            ? const Color(0xFF151B29)
-            : Colors.white,
-        borderRadius: BorderRadius.circular(17),
-        boxShadow: dark
-            ? null
-            : const [
-                BoxShadow(
-                  color: Color(0x12000000),
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-      ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 20,
-            color:
-                dark ? Colors.white : Colors.black87,
-          ),
-          const SizedBox(width: 7),
-          Text(
-            title,
-            style: TextStyle(
-              color: dark
-                  ? const Color(0xFF9CA3AF)
-                  : const Color(0xFF777E91),
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            value,
-            style: TextStyle(
-              color:
-                  dark ? Colors.white : Colors.black87,
-              fontWeight: FontWeight.w800,
-              fontSize: 15,
-            ),
           ),
         ],
       ),
     );
   }
+
+  Widget _roundControl({
+    required IconData icon,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: active ? const Color(0xFFEEF1FF) : Colors.white,
+            border: Border.all(
+              color: active
+                  ? const Color(0xFF3B5BFF)
+                  : const Color(0xFFD8DBE6),
+              width: 1.5,
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: active
+                ? const Color(0xFF3B5BFF)
+                : const Color(0xFF6B7080),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _selectByPosition(
+    Offset localPosition,
+    double boardSize,
+    int n,
+  ) {
+    final spacing = boardSize / (n + 1);
+    int? selected;
+    var bestDistance = double.infinity;
+
+    double distanceToSegment(Offset p, Offset a, Offset b) {
+      final ab = b - a;
+      final ab2 = ab.dx * ab.dx + ab.dy * ab.dy;
+      if (ab2 == 0) return (p - a).distance;
+      final ap = p - a;
+      final t = ((ap.dx * ab.dx) + (ap.dy * ab.dy)) / ab2;
+      final clamped = t.clamp(0.0, 1.0).toDouble();
+      final nearest = Offset(
+        a.dx + ab.dx * clamped,
+        a.dy + ab.dy * clamped,
+      );
+      return (p - nearest).distance;
+    }
+
+    for (int i = 0; i < paths.length; i++) {
+      final path = paths[i];
+      if (!path.active || path.bumping) continue;
+
+      final points = path.cells.map((cell) => Offset(
+            (cell.col + 1) * spacing,
+            (cell.row + 1) * spacing,
+          )).toList();
+      if (points.length == 1) {
+        final direction = _directionVector(path.direction);
+        points.insert(0, points.first - direction * (spacing * 0.4));
+      }
+
+      for (int j = 1; j < points.length; j++) {
+        final distance = distanceToSegment(localPosition, points[j - 1], points[j]);
+        if (distance < 24 && distance < bestDistance) {
+          bestDistance = distance;
+          selected = i;
+        }
+      }
+    }
+
+    if (selected != null) {
+      _tapArrow(selected!);
+    }
+  }
 }
 
-class _ArrowPuzzlePainter extends CustomPainter {
-  _ArrowPuzzlePainter({
+class _HtmlArrowPainter extends CustomPainter {
+  _HtmlArrowPainter({
     required this.paths,
     required this.gridSize,
-    required this.dotColor,
-    required this.arrowColor,
-    required this.movingIndex,
-    required this.moveProgress,
+    required this.showGrid,
+    required this.animatedIndex,
+    required this.exitAnimation,
+    required this.progress,
+    required this.bumpDistance,
   });
 
   final List<ArrowPath> paths;
   final int gridSize;
-  final Color dotColor;
-  final Color arrowColor;
-  final int? movingIndex;
-  final double moveProgress;
+  final bool showGrid;
+  final int? animatedIndex;
+  final bool exitAnimation;
+  final double progress;
+  final double bumpDistance;
 
-  Offset _toPixel(
-    Offset point,
-    double spacing,
-  ) {
-    return Offset(
-      point.dx * spacing,
-      point.dy * spacing,
-    );
-  }
-
-  Offset _directionVector(
-    ArrowDirection direction,
-  ) {
+  Offset _directionVector(ArrowDirection direction) {
     switch (direction) {
       case ArrowDirection.up:
         return const Offset(0, -1);
@@ -2630,137 +2705,174 @@ class _ArrowPuzzlePainter extends CustomPainter {
     }
   }
 
-  void _drawArrowHead(
+  double _rotation(ArrowDirection direction) {
+    switch (direction) {
+      case ArrowDirection.up:
+        return 0;
+      case ArrowDirection.down:
+        return math.pi;
+      case ArrowDirection.left:
+        return -math.pi / 2;
+      case ArrowDirection.right:
+        return math.pi / 2;
+    }
+  }
+
+  Offset _point(_GridCell cell, List<double> positions) {
+    return Offset(positions[cell.col], positions[cell.row]);
+  }
+
+  void _drawHead(
     Canvas canvas,
     Offset tip,
     ArrowDirection direction,
-    Paint paint,
+    double headSize,
+    Color color,
   ) {
-    const double headLength = 18;
-    const double headWidth = 14;
+    canvas.save();
+    canvas.translate(tip.dx, tip.dy);
+    canvas.rotate(_rotation(direction));
 
-    final d = _directionVector(direction);
-
-    final perpendicular =
-        Offset(-d.dy, d.dx);
-
-    final base = tip - d * headLength;
-
-    final left =
-        base + perpendicular * headWidth;
-
-    final right =
-        base - perpendicular * headWidth;
-
-    final triangle = Path()
-      ..moveTo(tip.dx, tip.dy)
-      ..lineTo(left.dx, left.dy)
-      ..lineTo(right.dx, right.dy)
+    final head = Path()
+      ..moveTo(-headSize, headSize * 0.8)
+      ..lineTo(headSize, headSize * 0.8)
+      ..lineTo(0, -headSize)
       ..close();
 
-    canvas.drawPath(triangle, paint);
+    canvas.drawPath(
+      head,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.fill,
+    );
+    canvas.restore();
+  }
+
+  Path _buildPointsPath(List<Offset> points) {
+    final path = Path();
+    for (int i = 0; i < points.length; i++) {
+      if (i == 0) {
+        path.moveTo(points[i].dx, points[i].dy);
+      } else {
+        path.lineTo(points[i].dx, points[i].dy);
+      }
+    }
+    return path;
   }
 
   @override
   void paint(Canvas canvas, Size size) {
-    final spacing =
-        size.width / (gridSize - 1);
+    final spacing = size.width / (gridSize + 1);
+    final positions = List<double>.generate(
+      gridSize,
+      (i) => spacing * (i + 1),
+    );
 
-    // Background dots.
+    final dotSize = math.max(4.0, math.min(6.0, spacing * 0.12)).toDouble();
+    final strokeWidth = math.max(3.0, math.min(7.0, spacing * 0.16)).toDouble();
+    final headSize = strokeWidth * 1.9;
+
     final dotPaint = Paint()
-      ..color = dotColor
+      ..color = const Color(0xFFCDD1DD)
       ..style = PaintingStyle.fill;
 
-    for (int row = 0; row < gridSize; row++) {
-      for (int col = 0; col < gridSize; col++) {
-        canvas.drawCircle(
-          Offset(
-            col * spacing,
-            row * spacing,
-          ),
-          3.2,
-          dotPaint,
-        );
+    for (final x in positions) {
+      for (final y in positions) {
+        canvas.drawCircle(Offset(x, y), dotSize / 2, dotPaint);
       }
     }
 
-    for (int index = 0;
-        index < paths.length;
-        index++) {
-      final arrow = paths[index];
+    if (showGrid) {
+      final guidePaint = Paint()
+        ..color = const Color(0xFFC7D3FF)
+        ..strokeWidth = 1.5
+        ..style = PaintingStyle.stroke;
 
-      if (!arrow.visible && !arrow.moving) {
+      for (final path in paths) {
+        if (!path.active) continue;
+        final head = _point(path.cells.last, positions);
+        final direction = _directionVector(path.direction);
+        final edge = Offset(
+          head.dx + direction.dx * size.width,
+          head.dy + direction.dy * size.height,
+        );
+        canvas.drawLine(head, edge, guidePaint);
+      }
+    }
+
+    for (int index = 0; index < paths.length; index++) {
+      final pathData = paths[index];
+      final isAnimated = animatedIndex == index;
+
+      if (!pathData.active && !isAnimated) continue;
+
+      final points = pathData.cells.map((cell) => _point(cell, positions)).toList();
+      if (points.length == 1) {
+        final direction = _directionVector(pathData.direction);
+        final stub = spacing * 0.4;
+        points.insert(0, points.first - direction * stub);
+      }
+
+      var color = const Color(0xFF141A30);
+      if (pathData.penalized) color = const Color(0xFFD23838);
+      if (pathData.hintStay || pathData.hintGlow) color = const Color(0xFF3B5BFF);
+
+      if (isAnimated && exitAnimation) {
+        final direction = _directionVector(pathData.direction);
+        final head = points.last;
+        final extPoint = head + direction * 1200;
+        final fullPoints = [...points, extPoint];
+        final fullPath = _buildPointsPath(fullPoints);
+        final metric = fullPath.computeMetrics().first;
+        final realLength = _pathLength(points);
+        final t = progress.clamp(0.0, 1.0).toDouble();
+        final eased = t * t;
+        final dashStart = eased * metric.length;
+        final leadStart = dashStart.clamp(0.0, metric.length).toDouble();
+        final leadEnd = (dashStart + realLength).clamp(0.0, metric.length).toDouble();
+
+        final segment = metric.extractPath(leadStart, leadEnd);
+        final alpha = t > 0.7
+            ? (1 - (t - 0.7) / 0.3).clamp(0.0, 1.0).toDouble()
+            : 1.0;
+        final paint = Paint()
+          ..color = color.withValues(alpha: alpha)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round;
+        canvas.drawPath(segment, paint);
+
+        final tip = _pointAtDistance(metric, leadEnd);
+        _drawHead(canvas, tip, pathData.direction, headSize, color.withValues(alpha: alpha));
         continue;
       }
 
-      final isMoving =
-          movingIndex == index && arrow.moving;
-
-      Offset translation = Offset.zero;
-
-      if (isMoving) {
-        final direction =
-            _directionVector(arrow.direction);
-
-        final distance =
-            size.width * 1.35 * moveProgress;
-
-        translation = direction * distance;
+      var translation = Offset.zero;
+      if (isAnimated && pathData.bumping) {
+        final t = progress.clamp(0.0, 1.0).toDouble();
+        final forward = t <= 0.425
+            ? (t / 0.425)
+            : (1 - (t - 0.425) / 0.575);
+        final e = 1 - math.pow(1 - forward.clamp(0.0, 1.0), 2).toDouble();
+        translation = _directionVector(pathData.direction) * bumpDistance * e;
       }
 
+      final shifted = points.map((point) => point + translation).toList();
       final pathPaint = Paint()
-        ..color = arrow.blocked
-            ? arrowColor.withValues(alpha: 0.45)
-            : arrowColor
+        ..color = color
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 8
+        ..strokeWidth = strokeWidth
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round;
 
-      final headPaint = Paint()
-        ..color = arrow.blocked
-            ? arrowColor.withValues(alpha: 0.45)
-            : arrowColor
-        ..style = PaintingStyle.fill;
+      canvas.drawPath(_buildPointsPath(shifted), pathPaint);
 
-      final path = Path();
-
-      for (int i = 0;
-          i < arrow.points.length;
-          i++) {
-        final point =
-            _toPixel(arrow.points[i], spacing) +
-                translation;
-
-        if (i == 0) {
-          path.moveTo(point.dx, point.dy);
-        } else {
-          path.lineTo(point.dx, point.dy);
-        }
-      }
-
-      canvas.drawPath(path, pathPaint);
-
-      final tip =
-          _toPixel(
-            arrow.points.last,
-            spacing,
-          ) +
-              translation;
-
-      _drawArrowHead(
-        canvas,
-        tip,
-        arrow.direction,
-        headPaint,
-      );
+      final tip = shifted.last;
+      _drawHead(canvas, tip, pathData.direction, headSize, color);
     }
   }
 
   @override
-  bool shouldRepaint(
-    covariant _ArrowPuzzlePainter oldDelegate,
-  ) {
-    return true;
-  }
+  bool shouldRepaint(covariant _HtmlArrowPainter oldDelegate) => true;
 }
