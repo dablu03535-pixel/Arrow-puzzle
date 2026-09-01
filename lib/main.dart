@@ -1,6 +1,4 @@
-import 'dart:math' as math;
 import 'dart:ui';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1968,6 +1966,19 @@ class _GamePlaceholderScreenState extends State<GamePlaceholderScreen>
     }
 
     return seen.length == n * n;
+  }
+
+  Offset _directionVector(ArrowDirection direction) {
+    switch (direction) {
+      case ArrowDirection.up:
+        return const Offset(0, -1);
+      case ArrowDirection.down:
+        return const Offset(0, 1);
+      case ArrowDirection.left:
+        return const Offset(-1, 0);
+      case ArrowDirection.right:
+        return const Offset(1, 0);
+    }
   }
 
   bool _isBlockedFor(
