@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1714,17 +1715,34 @@ class _FeatureScreen extends StatelessWidget {
 
 
 class GamePlaceholderScreen extends StatefulWidget {
-  const GamePlaceholderScreen({
-    super.key,
-    this.level = 1,
-    this.resume = false,
-  });
+  const GamePlaceholderScreen({super.key, this.level = 1, this.resume = false});
 
   final int level;
   final bool resume;
 
   @override
   State<GamePlaceholderScreen> createState() => _GamePlaceholderScreenState();
+}
+
+class _GamePlaceholderScreenState extends State<GamePlaceholderScreen> {
+  late final WebViewController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFFEEF0F6))
+      ..loadFlutterAsset('assets/arrow-dot-game-42.html');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFEEF0F6),
+      body: SafeArea(child: WebViewWidget(controller: _controller)),
+    );
+  }
 }
 
 enum ArrowDirection { up, down, left, right }

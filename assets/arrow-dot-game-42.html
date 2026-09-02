@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arrow Puzzle Game</title>
+<style>
+  * { box-sizing: border-box; margin:0; padding:0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    height: 100%;
+    background: radial-gradient(circle at 50% 20%, #ffffff, #eef0f6 70%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', sans-serif;
+    overflow: hidden;
+  }
+  .wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  h1 {
+    color: #1a1c23;
+    font-size: 20px;
+    letter-spacing: 0.5px;
+    text-align: center;
+  }
+  .sub {
+    color: #6b7080;
+    font-size: 13px;
+    text-align: center;
+    margin-top: -10px;
+  }
+  .board {
+    position: relative;
+    width: 300px;
+    height: 300px;
+  }
+  .dot {
+    position: absolute;
+    border-radius: 50%;
+    background: #cdd1dd;
+    transform: translate(-50%, -50%);
+  }
+
+  .arrow-path {
+    --arrow-color: #141a30;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .arrow-path .visible-line {
+    fill: none;
+    stroke: var(--arrow-color);
+    transition: stroke 0.12s ease;
+  }
+  .arrow-path .arrowhead polygon {
+    fill: var(--arrow-color);
+    transition: fill 0.12s ease;
+  }
+  .arrow-path.wrong-marked {
+    --arrow-color: #d23838;
+  }
+  .arrow-path.hint-glow {
+    --arrow-color: #3b5bff;
+    animation: hintPulse 0.8s ease-in-out infinite;
+  }
+  .arrow-path.hint-stay {
+    --arrow-color: #3b5bff;
+  }
+  @keyframes hintPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+
+  .level-badge { display: flex; align-items: center; gap: 10px; }
+  .tier-tag {
+    font-size: 11px; font-weight: 800; letter-spacing: 0.5px;
+    padding: 5px 12px; border-radius: 20px; text-transform: uppercase;
+  }
+  .tier-Easy { background: #dff5e6; color: #1a8f5e; }
+  .tier-Medium { background: #fff3d6; color: #b8860b; }
+  .tier-Hard { background: #ffe1e1; color: #d23838; }
+  .lvl-num {
+    background: #eef0f6; color: #1a1c23; font-weight: 700; font-size: 13px;
+    padding: 6px 16px; border-radius: 20px; letter-spacing: 0.3px;
+  }
+
+  .hearts { display: flex; gap: 6px; font-size: 18px; }
+  .heart { transition: transform 0.25s ease, opacity 0.25s ease; }
+  .heart.lost { opacity: 0.25; transform: scale(0.8); filter: grayscale(1); }
+
+  .status { color: #6b7080; font-size: 13px; height: 18px; }
+  .win { color: #1a8f5e; font-weight: 700; font-size: 16px; }
+  .fail { color: #d23838; font-weight: 700; font-size: 16px; }
+  .reset {
+    display: none; padding: 10px 22px; border-radius: 30px; border: none;
+    background: #1a1c23; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer;
+  }
+  .reset.next { background: #3b5bff; }
+  .reset.retry { background: #d23838; }
+
+  .red-flash {
+    position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: 0;
+    background: radial-gradient(ellipse at center, rgba(210,56,56,0) 40%, rgba(210,56,56,0.55) 100%);
+  }
+  .red-flash.show { animation: redFlashPulse 0.45s ease; }
+  @keyframes redFlashPulse { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+
+  .overlay {
+    position: fixed; inset: 0; background: rgba(20,22,35,0.55);
+    display: none; align-items: center; justify-content: center; z-index: 60;
+  }
+  .overlay.show { display: flex; }
+  .popup-card {
+    background: #fff; border-radius: 22px; padding: 28px 30px 24px; width: 260px;
+    text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  }
+  .popup-heart { font-size: 46px; line-height: 1; }
+  .popup-title { font-size: 18px; font-weight: 800; color: #1a1c23; margin-top: 8px; }
+  .popup-btn {
+    display: block; width: 100%; margin-top: 14px; padding: 12px;
+    border: none; border-radius: 30px; font-weight: 700; font-size: 14px; cursor: pointer;
+  }
+  .popup-btn.primary { background: #3b5bff; color: #fff; }
+  .popup-btn.secondary { background: #eef0f6; color: #1a1c23; }
+
+  .bottom-controls { display: flex; gap: 14px; }
+  .grid-toggle {
+    width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid #d8dbe6;
+    background: #fff; color: #6b7080; font-size: 17px; font-weight: 700;
+    cursor: pointer; margin-top: -4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .grid-toggle.active { border-color: #3b5bff; color: #3b5bff; background: #eef1ff; }
+
+  .touch-ripple {
+    position: fixed;
+    width: 20px; height: 20px;
+    margin-left: -10px; margin-top: -10px;
+    border-radius: 50%;
+    background: rgba(59, 91, 255, 0.35);
+    border: 2px solid rgba(59, 91, 255, 0.6);
+    pointer-events: none;
+    z-index: 100;
+    animation: touchRippleFade 0.4s ease-out forwards;
+  }
+  @keyframes touchRippleFade {
+    0%   { transform: scale(0.4); opacity: 0.8; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="red-flash" id="redFlash"></div>
+
+<div class="overlay" id="overlay">
+  <div class="popup-card">
+    <div class="popup-heart">❤️</div>
+    <div class="popup-title">Out of Lives!</div>
+    <button class="popup-btn primary" id="getLivesBtn">Get More Lives</button>
+    <button class="popup-btn secondary" id="restartBtn">Restart Game</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <h1>Arrow Puzzle</h1>
+  <div class="level-badge">
+    <span class="tier-tag tier-Easy" id="tierTag">Easy</span>
+    <span class="lvl-num" id="levelBadge">Level 1</span>
+  </div>
+  <div class="hearts" id="hearts">
+    <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+  </div>
+  <div class="sub">Jis arrow ke aage koi arrow na ho, usi pe tap karo</div>
+
+  <div class="board" id="board">
+    <svg id="arrowSvg" width="300" height="300" style="position:absolute; top:0; left:0; overflow:visible;"></svg>
+  </div>
+
+  <div class="bottom-controls">
+    <button class="grid-toggle" id="hintBtn" title="Hint">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18h6"></path>
+        <path d="M10 22h4"></path>
+        <path d="M12 2a7 7 0 0 0-4 12.7c.7.5 1 1.3 1 2.3v0h6v0c0-1 .3-1.8 1-2.3A7 7 0 0 0 12 2Z"></path>
+      </svg>
+    </button>
+    <button class="grid-toggle" id="gridToggle" title="Show guide grid">#</button>
+  </div>
+
+  <div class="status" id="status">arrows baaki hain</div>
+  <button class="reset" id="resetBtn">🔁 Phir se khelo</button>
+</div>
+
+<script>
+  const board = document.getElementById('board');
+  const svg = document.getElementById('arrowSvg');
+  const statusEl = document.getElementById('status');
+  const resetBtn = document.getElementById('resetBtn');
+  const levelBadge = document.getElementById('levelBadge');
+  const tierTag = document.getElementById('tierTag');
+  const heartsEl = document.getElementById('hearts');
+  const redFlash = document.getElementById('redFlash');
+  const overlay = document.getElementById('overlay');
+  const getLivesBtn = document.getElementById('getLivesBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const gridToggle = document.getElementById('gridToggle');
+  const hintBtn = document.getElementById('hintBtn');
+  let showGrid = false;
+  let hintedSet = new Set();
+
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const size = 300;
+
+  const levels = [
+    { tier: 'Easy',   n: 3 },
+    { tier: 'Easy',   n: 4 },
+    { tier: 'Medium', n: 5 },
+    { tier: 'Medium', n: 6 },
+    { tier: 'Hard',   n: 7 },
+    { tier: 'Hard',   n: 8 },
+  ];
+  const maxLevel = levels.length;
+
+  let currentLevel = 1;
+  let clickedCount = 0;
+  let totalArrows = 0;
+  let mistakes = 0;
+  let levelOver = false;
+  let currentPaths = [];
+  let positions = [];
+  let gridN = 3;
+  let cellSpacing = 0;
+
+  function getPositions(n) {
+    const p = [];
+    for (let i = 0; i < n; i++) p.push(size * (i + 1) / (n + 1));
+    return p;
+  }
+
+  function dirDelta(dir) {
+    const D = 1200;
+    return { up: [0, -D], down: [0, D], left: [-D, 0], right: [D, 0] }[dir];
+  }
+  function dirRotation(dir) {
+    return { up: 0, down: 180, left: -90, right: 90 }[dir];
+  }
+  function dirStep(dir) {
+    return { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] }[dir];
+  }
+
+  function generatePaths(n) {
+    const visited = Array.from({ length: n }, () => Array(n).fill(false));
+    const paths = [];
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        if (visited[r][c]) continue;
+        const cells = [[r, c]];
+        visited[r][c] = true;
+        let curR = r, curC = c, lastDir = null;
+        const maxLen = 2 + Math.floor(Math.random() * 4);
+        while (cells.length < maxLen) {
+          const dirs = [[-1, 0, 'up'], [1, 0, 'down'], [0, -1, 'left'], [0, 1, 'right']];
+          for (let i = dirs.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [dirs[i], dirs[j]] = [dirs[j], dirs[i]];
+          }
+          let moved = false;
+          for (const [dr, dc, name] of dirs) {
+            const nr = curR + dr, nc = curC + dc;
+            if (nr >= 0 && nr < n && nc >= 0 && nc < n && !visited[nr][nc]) {
+              cells.push([nr, nc]); visited[nr][nc] = true;
+              curR = nr; curC = nc; lastDir = name; moved = true; break;
+            }
+          }
+          if (!moved) break;
+        }
+        paths.push({ cells, dir: lastDir || 'up' });
+      }
+    }
+
+    let changed = true, guard = 0;
+    while (changed && guard < paths.length + 5) {
+      changed = false; guard++;
+      for (let i = paths.length - 1; i >= 0; i--) {
+        if (paths[i].cells.length !== 1) continue;
+        const [or, oc] = paths[i].cells[0];
+        let merged = false;
+        for (let j = 0; j < paths.length; j++) {
+          if (j === i) continue;
+          const t = paths[j];
+          const first = t.cells[0], last = t.cells[t.cells.length - 1];
+          if (Math.abs(first[0] - or) + Math.abs(first[1] - oc) === 1) { t.cells.unshift([or, oc]); merged = true; }
+          else if (Math.abs(last[0] - or) + Math.abs(last[1] - oc) === 1) {
+            t.cells.push([or, oc]);
+            const dr = or - last[0], dc = oc - last[1];
+            t.dir = dr === -1 ? 'up' : dr === 1 ? 'down' : dc === -1 ? 'left' : 'right';
+            merged = true;
+          }
+          if (merged) break;
+        }
+        if (merged) { paths.splice(i, 1); changed = true; }
+      }
+    }
+
+    return paths;
+  }
+
+  function isBlocked(path, allPaths, n) {
+    const head = path.cells[path.cells.length - 1];
+    const [dr, dc] = dirStep(path.dir);
+    let r = head[0] + dr, c = head[1] + dc;
+    while (r >= 0 && r < n && c >= 0 && c < n) {
+      const occupant = allPaths.find(p => p !== path && p.active !== false &&
+        p.cells.some(([cr, cc]) => cr === r && cc === c));
+      if (occupant) return true;
+      r += dr; c += dc;
+    }
+    return false;
+  }
+
+  function isSolvable(paths, n) {
+    const sim = paths.map(p => ({ cells: p.cells, dir: p.dir, active: true }));
+    let remaining = sim.length;
+    let progress = true;
+    while (remaining > 0 && progress) {
+      progress = false;
+      for (const p of sim) {
+        if (!p.active) continue;
+        if (!isBlocked(p, sim, n)) { p.active = false; remaining--; progress = true; }
+      }
+    }
+    return remaining === 0;
+  }
+
+  function straightColumnsFallback(n) {
+    const paths = [];
+    for (let c = 0; c < n; c++) {
+      const cells = [];
+      for (let r = n - 1; r >= 0; r--) cells.push([r, c]);
+      paths.push({ cells, dir: 'up' });
+    }
+    return paths;
+  }
+
+  function validatePaths(paths, n) {
+    const seen = new Set();
+    for (const p of paths) {
+      const cells = p.cells;
+      if (!cells || cells.length === 0) return false;
+      for (let i = 0; i < cells.length; i++) {
+        const [r, c] = cells[i];
+        if (r < 0 || r >= n || c < 0 || c >= n) return false;
+        const key = r + ',' + c;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        if (i > 0) {
+          const [r0, c0] = cells[i - 1];
+          if (Math.abs(r0 - r) + Math.abs(c0 - c) !== 1) return false;
+        }
+      }
+    }
+    return seen.size === n * n;
+  }
+
+  function generateSolvableLevel(n) {
+    for (let attempt = 0; attempt < 250; attempt++) {
+      const paths = generatePaths(n);
+      if (validatePaths(paths, n) && isSolvable(paths, n)) return paths;
+    }
+    return straightColumnsFallback(n);
+  }
+
+  function renderGuideGrid() {
+    const old = svg.querySelector('#guideGrid');
+    if (old) old.remove();
+    if (!showGrid || !positions.length) return;
+
+    const gg = document.createElementNS(SVGNS, 'g');
+    gg.setAttribute('id', 'guideGrid');
+
+    currentPaths.forEach((p) => {
+      if (!p.active) return;
+      const [hr, hc] = p.cells[p.cells.length - 1];
+      const hx = positions[hc], hy = positions[hr];
+      let x2 = hx, y2 = hy;
+      if (p.dir === 'up') y2 = 0;
+      else if (p.dir === 'down') y2 = size;
+      else if (p.dir === 'left') x2 = 0;
+      else if (p.dir === 'right') x2 = size;
+
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', hx); line.setAttribute('y1', hy);
+      line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+      line.setAttribute('stroke', p.penalized ? '#d23838' : '#c7d3ff');
+      line.setAttribute('stroke-width', 1.5);
+      gg.appendChild(line);
+    });
+
+    svg.insertBefore(gg, svg.firstChild);
+  }
+
+  function buildBoard(level) {
+    currentLevel = level;
+    levelOver = false;
+    mistakes = 0;
+    const cfg = levels[level - 1];
+    gridN = cfg.n;
+    clickedCount = 0;
+
+    tierTag.textContent = cfg.tier;
+    tierTag.className = 'tier-tag tier-' + cfg.tier;
+    levelBadge.textContent = 'Level ' + level;
+    resetBtn.style.display = 'none';
+    resetBtn.classList.remove('next', 'retry');
+    overlay.classList.remove('show');
+    hintedSet = new Set();
+    heartsEl.querySelectorAll('.heart').forEach(h => h.classList.remove('lost'));
+
+    board.querySelectorAll('.dot').forEach(d => d.remove());
+    svg.innerHTML = '';
+
+    positions = getPositions(gridN);
+    cellSpacing = positions[1] - positions[0];
+    const dotSize = Math.max(4, Math.min(6, cellSpacing * 0.12));
+    const strokeWidth = Math.max(3, Math.min(7, cellSpacing * 0.16));
+    const headSize = strokeWidth * 1.9;
+
+    positions.forEach((cx) => {
+      positions.forEach((cy) => {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        dot.style.left = cx + 'px'; dot.style.top = cy + 'px';
+        dot.style.width = dotSize + 'px'; dot.style.height = dotSize + 'px';
+        board.insertBefore(dot, svg);
+      });
+    });
+
+    currentPaths = generateSolvableLevel(gridN);
+    totalArrows = currentPaths.length;
+    statusEl.textContent = totalArrows + ' arrows baaki hain';
+    statusEl.className = 'status';
+
+    currentPaths.forEach((p) => {
+      p.active = true;
+      let pts = p.cells.map(([r, c]) => [positions[c], positions[r]]);
+      if (pts.length === 1) {
+        const [ux, uy] = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[p.dir];
+        const stub = cellSpacing * 0.4;
+        const [hx0, hy0] = pts[0];
+        pts = [[hx0 - ux * stub, hy0 - uy * stub], [hx0, hy0]];
+      }
+      const g = document.createElementNS(SVGNS, 'g');
+      g.setAttribute('class', 'arrow-path');
+
+      const hit = document.createElementNS(SVGNS, 'polyline');
+      hit.setAttribute('points', pts.map(pt => pt.join(',')).join(' '));
+      hit.setAttribute('stroke', 'transparent');
+      hit.setAttribute('stroke-width', Math.max(22, strokeWidth * 4));
+      hit.setAttribute('fill', 'none');
+      hit.style.pointerEvents = 'stroke';
+      g.appendChild(hit);
+
+      const line = document.createElementNS(SVGNS, 'polyline');
+      line.setAttribute('class', 'visible-line');
+      line.setAttribute('points', pts.map(pt => pt.join(',')).join(' '));
+      line.setAttribute('stroke-width', strokeWidth);
+      line.setAttribute('stroke-linecap', 'round');
+      line.setAttribute('stroke-linejoin', 'round');
+      line.style.pointerEvents = 'none';
+      g.appendChild(line);
+
+      const [hx, hy] = pts[pts.length - 1];
+      const headG = document.createElementNS(SVGNS, 'g');
+      headG.setAttribute('class', 'arrowhead');
+      headG.setAttribute('transform', `translate(${hx},${hy}) rotate(${dirRotation(p.dir)})`);
+      headG.style.pointerEvents = 'none';
+      const tri = document.createElementNS(SVGNS, 'polygon');
+      const hs = headSize;
+      tri.setAttribute('points', `${-hs},${hs * 0.8} ${hs},${hs * 0.8} 0,${-hs}`);
+      headG.appendChild(tri);
+      g.appendChild(headG);
+
+      p.el = g;
+      g.addEventListener('click', () => onArrowClick(p));
+      svg.appendChild(g);
+    });
+
+    renderGuideGrid();
+  }
+
+  function getBumpVector(path) {
+    const head = path.cells[path.cells.length - 1];
+    const [dr, dc] = dirStep(path.dir);
+    let r = head[0] + dr, c = head[1] + dc;
+    let freeSteps = 0;
+    while (r >= 0 && r < gridN && c >= 0 && c < gridN) {
+      const owner = currentPaths.find(pp => pp.cells.some(([cr, cc]) => cr === r && cc === c));
+      if (owner && owner.active) break;
+      freeSteps++;
+      r += dr; c += dc;
+    }
+    const travel = freeSteps * cellSpacing + cellSpacing * 0.4;
+    const unit = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[path.dir];
+    return [unit[0] * travel, unit[1] * travel];
+  }
+
+  function trainExit(p, onDone) {
+    const g = p.el;
+    const line = g.querySelector('.visible-line');
+    const hit = g.querySelector('polyline');
+    const headG = g.querySelector('.arrowhead');
+
+    const pts = p.cells.map(([r, c]) => [positions[c], positions[r]]);
+    let realLen = 0;
+    for (let i = 1; i < pts.length; i++) {
+      realLen += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    }
+    const head = pts[pts.length - 1];
+    const unit = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[p.dir];
+    const D = 1200;
+    const extPoint = [head[0] + unit[0] * D, head[1] + unit[1] * D];
+    const fullPts = [...pts, extPoint];
+    const fullStr = fullPts.map(pt => pt.join(',')).join(' ');
+    line.setAttribute('points', fullStr);
+    hit.setAttribute('points', fullStr);
+
+    const totalLen = line.getTotalLength();
+    line.style.strokeDasharray = `${realLen} ${totalLen + 50}`;
+
+    const duration = 650;
+    const start = performance.now();
+
+    function frame(now) {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = t * t;
+      const dashStart = eased * totalLen;
+      line.style.strokeDashoffset = String(-dashStart);
+
+      const leadLen = Math.min(totalLen, dashStart + realLen);
+      const p1 = line.getPointAtLength(Math.max(0, leadLen - 1));
+      const p2 = line.getPointAtLength(leadLen);
+      const tx = p2.x - p1.x, ty = p2.y - p1.y;
+      const angle = (Math.hypot(tx, ty) > 0.001)
+        ? Math.atan2(tx, -ty) * 180 / Math.PI
+        : dirRotation(p.dir);
+      headG.setAttribute('transform', `translate(${p2.x},${p2.y}) rotate(${angle})`);
+
+      const opacity = t > 0.7 ? Math.max(0, 1 - (t - 0.7) / 0.3) : 1;
+      g.style.opacity = opacity;
+
+      if (t < 1) requestAnimationFrame(frame);
+      else onDone && onDone();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function trainBump(p) {
+    if (p.bumping) return;
+    p.bumping = true;
+    const g = p.el;
+    const line = g.querySelector('.visible-line');
+    const hit = g.querySelector('polyline');
+    const headG = g.querySelector('.arrowhead');
+
+    const pts = p.cells.map(([r, c]) => [positions[c], positions[r]]);
+    let realLen = 0;
+    for (let i = 1; i < pts.length; i++) {
+      realLen += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    }
+    const head = pts[pts.length - 1];
+    const unit = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[p.dir];
+    const D = 1200;
+    const extPoint = [head[0] + unit[0] * D, head[1] + unit[1] * D];
+    const fullPts = [...pts, extPoint];
+    const fullStr = fullPts.map(pt => pt.join(',')).join(' ');
+    line.setAttribute('points', fullStr);
+    hit.setAttribute('points', fullStr);
+
+    const totalLen = line.getTotalLength();
+    line.style.strokeDasharray = `${realLen} ${totalLen + 50}`;
+
+    const [bdx, bdy] = getBumpVector(p);
+    const bumpDist = Math.hypot(bdx, bdy);
+
+    function setFrame(dashStart) {
+      line.style.strokeDashoffset = String(-dashStart);
+      const leadLen = Math.min(totalLen, dashStart + realLen);
+      const p1 = line.getPointAtLength(Math.max(0, leadLen - 1));
+      const p2 = line.getPointAtLength(leadLen);
+      const tx = p2.x - p1.x, ty = p2.y - p1.y;
+      const angle = (Math.hypot(tx, ty) > 0.001)
+        ? Math.atan2(tx, -ty) * 180 / Math.PI
+        : dirRotation(p.dir);
+      headG.setAttribute('transform', `translate(${p2.x},${p2.y}) rotate(${angle})`);
+    }
+
+    const forwardDur = 170, backDur = 230;
+    const start = performance.now();
+    function forwardFrame(now) {
+      const t = Math.min(1, (now - start) / forwardDur);
+      const e = 1 - Math.pow(1 - t, 2);
+      setFrame(bumpDist * e);
+      if (t < 1) requestAnimationFrame(forwardFrame);
+      else {
+        const s2 = performance.now();
+        function backFrame(now2) {
+          const t2 = Math.min(1, (now2 - s2) / backDur);
+          const e2 = t2 * t2;
+          setFrame(bumpDist * (1 - e2));
+          if (t2 < 1) requestAnimationFrame(backFrame);
+          else {
+            line.style.strokeDasharray = '';
+            line.style.strokeDashoffset = '';
+            const origStr = pts.map(pt => pt.join(',')).join(' ');
+            line.setAttribute('points', origStr);
+            hit.setAttribute('points', origStr);
+            headG.setAttribute('transform', `translate(${head[0]},${head[1]}) rotate(${dirRotation(p.dir)})`);
+            p.bumping = false;
+          }
+        }
+        requestAnimationFrame(backFrame);
+      }
+    }
+    requestAnimationFrame(forwardFrame);
+  }
+
+  function showHint() {
+    const candidate = currentPaths.find(p => p.active && !isBlocked(p, currentPaths, gridN) && !hintedSet.has(p));
+    if (!candidate) return;
+    hintedSet.add(candidate);
+    candidate.el.classList.add('hint-glow');
+    setTimeout(() => {
+      candidate.el.classList.remove('hint-glow');
+      candidate.el.classList.add('hint-stay');
+    }, 1800);
+  }
+
+  // ---- lightweight sound engine (no external files needed) ----
+  let audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function tone(freq, duration, type, startTime, volume) {
+    const t0 = audioCtx.currentTime + startTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(volume, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t0); osc.stop(t0 + duration);
+  }
+  function playWhoosh() {
+    ensureAudio();
+    const t0 = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(320, t0);
+    osc.frequency.exponentialRampToValueAtTime(950, t0 + 0.25);
+    gain.gain.setValueAtTime(0.16, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.28);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t0); osc.stop(t0 + 0.3);
+  }
+  function noiseBurst(duration, volume, startTime) {
+    ensureAudio();
+    const t0 = audioCtx.currentTime + (startTime || 0);
+    const bufferSize = audioCtx.sampleRate * duration;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(volume, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
+    noise.connect(gain); gain.connect(audioCtx.destination);
+    noise.start(t0);
+  }
+  function playBuzz() {
+    ensureAudio();
+    tone(300, 0.08, 'square', 0, 0.12);
+    tone(300, 0.08, 'square', 0.12, 0.12);
+  }
+  function playWin() {
+    ensureAudio();
+    [523.25, 659.25, 783.99].forEach((f, i) => tone(f, 0.18, 'triangle', i * 0.09, 0.14));
+  }
+  function playGameOver() {
+    ensureAudio();
+    const t0 = audioCtx.currentTime;
+    const totalDur = 2.05;
+
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sawtooth';
+    const steps = 100;
+    const freqCurve = [];
+    const freqPoints = [
+      [0.00, 130], [0.10, 150], [0.15, 129],
+      [0.16, 990], [0.30, 1030], [0.31, 900],
+      [0.42, 870], [0.46, 650], [0.60, 610],
+      [0.62, 90], [0.63, 86], [0.88, 90],
+      [1.00, 86]
+    ];
+    for (let i = 0; i <= steps; i++) {
+      const tt = i / steps;
+      let f = freqPoints[freqPoints.length - 1][1];
+      for (let j = 0; j < freqPoints.length - 1; j++) {
+        if (tt >= freqPoints[j][0] && tt <= freqPoints[j + 1][0]) {
+          const [t1, f1] = freqPoints[j], [t2, f2] = freqPoints[j + 1];
+          const localT = (tt - t1) / (t2 - t1 || 1);
+          f = f1 + (f2 - f1) * localT;
+          break;
+        }
+      }
+      freqCurve.push(Math.max(20, f));
+    }
+    osc.frequency.setValueCurveAtTime(freqCurve, t0, totalDur);
+
+    const gain = audioCtx.createGain();
+    const ampPoints = [
+      [0.00, 0.001], [0.06, 0.12], [0.13, 0.09], [0.16, 0.02],
+      [0.30, 0.03], [0.45, 0.02], [0.60, 0.06], [0.63, 0.14],
+      [0.70, 0.11], [0.85, 0.09], [1.00, 0.001]
+    ];
+    const ampCurve = [];
+    for (let i = 0; i <= steps; i++) {
+      const tt = i / steps;
+      let a = ampPoints[ampPoints.length - 1][1];
+      for (let j = 0; j < ampPoints.length - 1; j++) {
+        if (tt >= ampPoints[j][0] && tt <= ampPoints[j + 1][0]) {
+          const [t1, a1] = ampPoints[j], [t2, a2] = ampPoints[j + 1];
+          const localT = (tt - t1) / (t2 - t1 || 1);
+          a = a1 + (a2 - a1) * localT;
+          break;
+        }
+      }
+      ampCurve.push(Math.max(0.0001, a));
+    }
+    gain.gain.setValueCurveAtTime(ampCurve, t0, totalDur);
+
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t0); osc.stop(t0 + totalDur);
+  }
+  function playClick() {
+    ensureAudio();
+    tone(700, 0.05, 'square', 0, 0.05);
+  }
+  function playBlast() {
+    ensureAudio();
+    tone(440, 0.08, 'sine', 0, 0.12);
+    setTimeout(() => tone(520, 0.06, 'sine', 0, 0.12), 60);
+  }
+  function playTouch() {
+    ensureAudio();
+    tone(1000, 0.025, 'sine', 0, 0.22);
+  }
+
+  function loseHeart() {
+    mistakes++;
+    const hearts = heartsEl.querySelectorAll('.heart');
+    if (hearts[mistakes - 1]) hearts[mistakes - 1].classList.add('lost');
+
+    if (mistakes >= 3) {
+      levelOver = true;
+      playGameOver();
+      setTimeout(() => { overlay.classList.add('show'); }, 300);
+    }
+  }
+
+  function onArrowClick(p) {
+    if (levelOver || !p.active) return;
+    if (p.bumping) return;
+
+    if (isBlocked(p, currentPaths, gridN)) {
+      p.el.classList.add('wrong-marked');
+      trainBump(p);
+      playBuzz();
+
+      redFlash.classList.remove('show');
+      void redFlash.offsetWidth;
+      redFlash.classList.add('show');
+
+      if (!p.penalized) {
+        p.penalized = true;
+        loseHeart();
+      }
+      renderGuideGrid();
+      return;
+    }
+
+    p.active = false;
+    clickedCount++;
+    statusEl.textContent = (totalArrows - clickedCount) + ' arrows baaki hain';
+    p.el.style.pointerEvents = 'none';
+    playTouch();
+
+    if (showGrid) {
+      showGrid = false;
+      gridToggle.classList.remove('active');
+    }
+    renderGuideGrid();
+
+    p.el.style.setProperty('--arrow-color', '#3b5bff');
+    trainExit(p, () => {
+      p.el.style.display = 'none';
+    });
+
+    if (clickedCount === totalArrows) {
+      levelOver = true;
+      setTimeout(() => {
+        playWin();
+        if (currentLevel < maxLevel) {
+          statusEl.textContent = '🎉 Level ' + currentLevel + ' Complete!';
+          statusEl.className = 'status win';
+          resetBtn.textContent = '➡️ Next Level';
+          resetBtn.classList.add('next');
+          resetBtn.style.display = 'inline-block';
+        } else {
+          statusEl.textContent = '🏆 Sabhi Levels Complete!';
+          statusEl.className = 'status win';
+          resetBtn.textContent = '🔁 Restart from Level 1';
+          resetBtn.classList.remove('next');
+          resetBtn.style.display = 'inline-block';
+        }
+      }, 700);
+    }
+  }
+
+  getLivesBtn.addEventListener('click', () => {
+    overlay.classList.remove('show');
+    mistakes = 0;
+    levelOver = false;
+    heartsEl.querySelectorAll('.heart').forEach(h => h.classList.remove('lost'));
+  });
+
+  restartBtn.addEventListener('click', () => {
+    overlay.classList.remove('show');
+    buildBoard(currentLevel);
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (resetBtn.classList.contains('next') && currentLevel < maxLevel) buildBoard(currentLevel + 1);
+    else if (resetBtn.classList.contains('retry')) buildBoard(currentLevel);
+    else buildBoard(1);
+  });
+
+  gridToggle.addEventListener('click', () => {
+    playBlast();
+    showGrid = !showGrid;
+    gridToggle.classList.toggle('active', showGrid);
+    renderGuideGrid();
+  });
+
+  hintBtn.addEventListener('click', () => {
+    playClick();
+    showHint();
+    hintBtn.classList.add('active');
+    setTimeout(() => hintBtn.classList.remove('active'), 250);
+  });
+
+  buildBoard(1);
+
+  // touch-indicator circle at every tap position (like Android's "Show Taps")
+  function showTouchRipple(x, y) {
+    const ripple = document.createElement('div');
+    ripple.className = 'touch-ripple';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    document.body.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 420);
+  }
+  document.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('#board')) {
+      showTouchRipple(e.clientX, e.clientY);
+    }
+  });
+</script>
+
+</body>
+</html>
